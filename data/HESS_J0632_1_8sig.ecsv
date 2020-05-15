@@ -1,0 +1,50 @@
+# %ECSV 0.9
+# ---
+# datatype:
+# - {name: energy, unit: keV, datatype: float64}
+# - {name: flux, unit: keV / (cm2 s), datatype: float64}
+# - {name: flux_error_lo, unit: keV / (cm2 s), datatype: float64}
+# - {name: flux_error_hi, unit: keV / (cm2 s), datatype: float64}
+# meta: !!omap
+# - __serialized_columns__:
+#     energy:
+#       __class__: astropy.units.quantity.Quantity
+#       value: !astropy.table.SerializedColumn {name: energy}
+#     flux:
+#       __class__: astropy.units.quantity.Quantity
+#       value: !astropy.table.SerializedColumn {name: flux}
+#     flux_error_hi:
+#       __class__: astropy.units.quantity.Quantity
+#       value: !astropy.table.SerializedColumn {name: flux_error_hi}
+#     flux_error_lo:
+#       __class__: astropy.units.quantity.Quantity
+#       value: !astropy.table.SerializedColumn {name: flux_error_lo}
+# schema: astropy-2.0
+energy flux flux_error_lo flux_error_hi
+3.22 0.00037773 4.5971e-05 0.0004051
+3.66 0.00040384 4.5051e-05 0.00042756
+4.08 0.00043685 4.8429e-05 0.00044763
+4.46 0.00049224 5.4803e-05 0.00046475
+4.82 0.00054191 5.8815e-05 0.00048013
+5.16 0.00053595 6.3489e-05 0.0004941
+5.5 0.00051618 6.0726e-05 0.00050746
+5.88 0.00049102 5.7698e-05 0.00052184
+6.28 0.00055775 6.356e-05 0.00053644
+6.66 0.00060208 7.1902e-05 0.00054985
+7.06 0.00060178 6.7954e-05 0.0005634
+7.52 0.0006266 6.9661e-05 0.00057847
+7.96 0.0006601 8.1508e-05 0.00059248
+8.36 0.00069571 8.6889e-05 0.00060478
+8.8 0.00064369 8.001e-05 0.00061787
+9.34 0.00061197 7.3696e-05 0.00063341
+10.0 0.00067176 7.7548e-05 0.00065173
+10.76 0.00070598 8.4213e-05 0.000672
+11.66 0.0007025 8.6354e-05 0.00069488
+12.98 0.00062205 7.5565e-05 0.00072629
+14.78 0.00077314 9.3767e-05 0.00076677
+16.86 0.0010997 0.00012798 0.00081026
+20.64 0.00087961 0.00010432 0.00087828
+25.68 0.00091245 0.00019672 0.00096502
+279085324.48218346 0.0007230859983473472 0.00039183193563115657 0.00042975824056009824
+556848430.6001621 0.0008309869608780749 0.0002519717700905797 0.00028354289315395196
+1111059712.0494082 0.0007407475119182964 0.00025393576392096305 0.0003017745475269127

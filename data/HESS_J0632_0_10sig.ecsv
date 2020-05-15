@@ -1,0 +1,43 @@
+# %ECSV 0.9
+# ---
+# datatype:
+# - {name: energy, unit: keV, datatype: float64}
+# - {name: flux, unit: keV / (cm2 s), datatype: float64}
+# - {name: flux_error_lo, unit: keV / (cm2 s), datatype: float64}
+# - {name: flux_error_hi, unit: keV / (cm2 s), datatype: float64}
+# meta: !!omap
+# - __serialized_columns__:
+#     energy:
+#       __class__: astropy.units.quantity.Quantity
+#       value: !astropy.table.SerializedColumn {name: energy}
+#     flux:
+#       __class__: astropy.units.quantity.Quantity
+#       value: !astropy.table.SerializedColumn {name: flux}
+#     flux_error_hi:
+#       __class__: astropy.units.quantity.Quantity
+#       value: !astropy.table.SerializedColumn {name: flux_error_hi}
+#     flux_error_lo:
+#       __class__: astropy.units.quantity.Quantity
+#       value: !astropy.table.SerializedColumn {name: flux_error_lo}
+# schema: astropy-2.0
+energy flux flux_error_lo flux_error_hi
+3.26 0.00053921 5.0974e-05 0.00051418
+3.74 0.00053657 5.2393e-05 0.0005301
+4.16 0.00062919 5.8691e-05 0.00054266
+4.6 0.00057097 5.2248e-05 0.00055466
+5.08 0.00057251 5.4286e-05 0.00056686
+5.54 0.00066504 6.3122e-05 0.00057775
+6.04 0.00063504 5.7133e-05 0.00058869
+6.68 0.0005391 4.9522e-05 0.0006017
+7.36 0.0005993 5.9167e-05 0.00061467
+8.06 0.00065014 6.0919e-05 0.00062695
+8.82 0.00066805 6.6422e-05 0.00063944
+9.7 0.00064242 6.2756e-05 0.00065276
+10.84 0.00069251 6.8861e-05 0.00066869
+12.42 0.00077536 7.5568e-05 0.00068858
+15.34 0.00073556 6.9927e-05 0.00071967
+22.58 0.00094008 9.3833e-05 0.00077772
+279085324.48218346 0.0017923495186850829 0.0005890132040516896 0.0006454964723004523
+556848430.6001621 0.0006804740440972064 0.00027709291544081055 0.00030379981080426227
+1111059712.0494082 0.0005771490685733764 0.00023671636948648334 0.0002720217448414277
+2216853531.333861 0.00022408419294528563 0.0001834727385931019 0.00023743426806269153

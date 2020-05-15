@@ -1,0 +1,12 @@
+# %ECSV 0.9
+# ---
+# datatype:
+# - {name: lge, unit: '', datatype: float64}
+# - {name: dnde, unit: '', datatype: float64}
+# - {name: dnde_error_lo, unit: '', datatype: float64}
+# - {name: dnde_error_hi, unit: '', datatype: float64}
+lge dnde dnde_error_lo dnde_error_hi
+-0.554263 2.30117e-11 7.56225e-12 8.28743e-12
+-0.254263 2.19451e-12 8.93617e-13 9.79746e-13
+0.0457374 4.67534e-13 1.91758e-13 2.20358e-13
+0.345737 4.55971e-14 3.73334e-14 4.83136e-14
