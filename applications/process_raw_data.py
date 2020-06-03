@@ -8,6 +8,7 @@ import logging
 import astropy.units as u
 from astropy.io import ascii
 
+logging.getLogger().setLevel(logging.DEBUG)
 
 if __name__ == '__main__':
     '''
@@ -44,8 +45,6 @@ if __name__ == '__main__':
     convEnergyVTS = u.TeV.to(u.keV)
     convFluxVTS = u.TeV.to(u.erg)
     for d in dataVTS:
-        if d['dnde_error'] == 0.:
-            continue
         en = 10**d['lge']  # TeV
         outData['energy'].append(en * convEnergyVTS)
         outData['flux'].append(d['dnde'] * (en**2) * convFluxVTS)
@@ -77,8 +76,6 @@ if __name__ == '__main__':
     convEnergyVTS = u.TeV.to(u.keV)
     convFluxVTS = u.TeV.to(u.erg)
     for d in dataVTS:
-        if d['dnde_error'] == 0.:
-            continue
         en = 10**d['lge']  # TeV
         outData['energy'].append(en * convEnergyVTS)
         outData['flux'].append(d['dnde'] * (en**2) * convFluxVTS)
