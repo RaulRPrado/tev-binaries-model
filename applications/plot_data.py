@@ -1,18 +1,9 @@
 #!/usr/bin/python3
 
 import matplotlib.pyplot as plt
-import numpy as np
-import math
-import copy
-import itertools
-from itertools import combinations
-from numpy import arccos
-from numpy.linalg import norm
-from scipy import optimize
+import logging
 
-import astropy.constants as const
 import astropy.units as u
-from iminuit import Minuit
 
 from tgblib import util
 from tgblib.data import get_data, MJD_MEAN, NO_OF_PERIODS
@@ -38,6 +29,7 @@ if __name__ == '__main__':
         else:
             plt.figure(figsize=(8, 6), tight_layout=True)
             ax = plt.gca()
+            ax.set_title('Period {}'.format(iper))
             ax.set_yscale('log')
             ax.set_xscale('log')
             ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
@@ -84,6 +76,7 @@ if __name__ == '__main__':
         else:
             plt.figure(figsize=(8, 6), tight_layout=True)
             ax = plt.gca()
+            ax.set_title('Period {}'.format(iper))
             ax.set_yscale('log')
             ax.set_xscale('log')
             ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')

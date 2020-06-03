@@ -45,14 +45,14 @@ def get_data(period, onlyNuSTAR=False, onlyVTS=False):
         energy = [e for e in data['energy'] if e < 1e6]
         flux = [f for (f, e) in zip(data['flux'], data['energy']) if e < 1e6]
         flux_err = [f for (f, e) in zip(data['flux_err'], data['energy']) if e < 1e6]
-        return energy, flux, flix_err
+        return energy, flux, flux_err
 
     if onlyVTS:
         logging.debug('Processing onlyVTS data')
         energy = [e for e in data['energy'] if e > 1e3]
         flux = [f for (f, e) in zip(data['flux'], data['energy']) if e > 1e3]
         flux_err = [f for (f, e) in zip(data['flux_err'], data['energy']) if e > 1e3]
-        return energy, flux, flix_err
+        return energy, flux, flux_err
 
     return list(data['energy']), list(data['flux']), list(data['flux_err'])
 
