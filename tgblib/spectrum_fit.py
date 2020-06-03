@@ -11,7 +11,7 @@ from iminuit import Minuit
 from tgblib import data
 
 
-class SpectrumFit(object):
+class SpectrumFit:
     def __init__(self, energy=None, spec=None, specErr=None):
         self.set_data(energy=energy, spec=spec, specErr=specErr)
 
@@ -33,16 +33,21 @@ class SpectrumFit(object):
         self.E0 = (self.Emin + self.Emax) / 2
 
         def least_square(f, g):
-            model = [self.pl_flux(e=e, F=f, g=g, e0=self.E0, e1=self.Emin, e2=self.Emax)
-                     for e in self.energy]
+            model = [
+                self.pl_flux(e=e, F=f, g=g, e0=self.E0, e1=self.Emin, e2=self.Emax) for e in self.energy
+            ]
             chisq = [((f - m) / e)**2 for (f, e, m) in zip(self.spec, self.specErr, model)]
             return sum(chisq)
 
-        minuit = Minuit(least_square,
-                        f=1e-12, fix_f=False,
-                        g=1.5, fix_g=False,
-                        limit_f=(1e-15, 1e-9),
-                        limit_g=(0, 3))
+        minuit = Minuit(
+            least_square,
+            f=1e-12,
+            fix_f=False,
+            g=1.5,
+            fix_g=False,
+            limit_f=(1e-15, 1e-9),
+            limit_g=(0, 3)
+        )
 
         fmin, param = minuit.migrad()
 
@@ -57,8 +62,16 @@ class SpectrumFit(object):
         self.sigmaFG = cov[0][1]
 
         self.enFit = np.linspace(self.Emin, self.Emax, 100)
-        self.specFit = [self.pl_flux(e=e, F=self.flux, g=self.gamma,
-                                     e0=self.E0, e1=self.Emin, e2=self.Emax) for e in self.enFit]
+        self.specFit = [
+            self.pl_flux(
+                e=e,
+                F=self.flux,
+                g=self.gamma,
+                e0=self.E0,
+                e1=self.Emin,
+                e2=self.Emax
+            ) for e in self.enFit
+        ]
 
     def plot_data(self, **kwargs):
         plt.errorbar(self.energy, self.spec, yerr=self.specErr, **kwargs)
@@ -91,8 +104,8 @@ class SpectrumFit(object):
 
         self.uncFit = [sigma(e=e, f=f, g=g) for (e, f, g) in zip(self.enFit, dfdF, dfdG)]
 
-        self.specFitUpper = [s+u for (s, u) in zip(self.specFit, self.uncFit)]
-        self.specFitLower = [s-u for (s, u) in zip(self.specFit, self.uncFit)]
+        self.specFitUpper = [s + u for (s, u) in zip(self.specFit, self.uncFit)]
+        self.specFitLower = [s - u for (s, u) in zip(self.specFit, self.uncFit)]
 
         plt.fill_between(x=self.enFit, y1=self.specFitUpper, y2=self.specFitLower, **kwargs)
 
