@@ -56,3 +56,11 @@ def set_my_fonts(mode='text'):
         plt.rc('xtick', labelsize=25)
         plt.rc('ytick', labelsize=25)
         plt.rc('text', usetex=True)
+
+
+def get_emin_fit(en):
+    return 10**(math.log10(en[0]) - (math.log10(en[1]) - math.log10(en[0])) / 2)
+
+
+def get_emax_fit(en):
+    return 10**(math.log10(en[-1]) + (math.log10(en[-1]) - math.log10(en[-2])) / 2)

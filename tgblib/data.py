@@ -3,22 +3,58 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-import itertools
-from scipy import optimize
+import logging
 
 import astropy.units as u
-import naima
-from iminuit import Minuit
 from astropy.table import QTable
 from astropy.io import ascii
-from naima.models import (
-    ExponentialCutoffPowerLaw,
-    ExponentialCutoffBrokenPowerLaw,
-    Synchrotron,
-    InverseCompton
-)
 
 from tgblib import util
+
+MJD_MEAN = {
+    0: 58079,
+    1: 58101,
+    2: 58101,
+    3: 58101,
+    4: 58101
+}
+
+NO_OF_PERIODS = 5
+
+
+def get_data(period, onlyNuSTAR=False, onlyVTS=False):
+    '''
+    Get data for a given period.
+    Energies in keV and fluxes in erg/cm2/s
+
+    Returns
+    -------
+    energy, flux, flux_err (as lists)
+    '''
+    if period not in [0, 1, 2, 3, 4]:
+        logging.error('Invalid period')
+        return None, None, None
+    if onlyVTS and onlyNuSTAR:
+        logging.error('Both onlyNuSTAR and onlyVTS - pick one')
+        return None, None, None
+
+    data = ascii.read('data/HESS_J0632_' + str(period) + '.csv', format='basic')
+
+    if onlyNuSTAR:
+        logging.debug('Processing onlyNuSTAR data')
+        energy = [e for e in data['energy'] if e < 1e6]
+        flux = [f for (f, e) in zip(data['flux'], data['energy']) if e < 1e6]
+        flux_err = [f for (f, e) in zip(data['flux_err'], data['energy']) if e < 1e6]
+        return energy, flux, flix_err
+
+    if onlyVTS:
+        logging.debug('Processing onlyVTS data')
+        energy = [e for e in data['energy'] if e > 1e3]
+        flux = [f for (f, e) in zip(data['flux'], data['energy']) if e > 1e3]
+        flux_err = [f for (f, e) in zip(data['flux_err'], data['energy']) if e > 1e3]
+        return energy, flux, flix_err
+
+    return list(data['energy']), list(data['flux']), list(data['flux_err'])
 
 
 def get_fermi_spec():
@@ -46,25 +82,6 @@ def get_fermi_upper_limits():
     lim_er_fermi = [p - pow(10, math.log10(p)-0.1) for p in lim_fermi]
 
     return energy_lim_fermi, lim_fermi, lim_er_fermi
-
-
-def get_data(period=0, which='3sig'):
-    if period != 0 and period != 1:
-        print('get_data:wrong period')
-        return None, None, None
-    data = ascii.read('data/HESS_J0632_' + str(period) + '_' + which + '.ecsv', format='basic')
-    energy = list(data['energy'])                                    # keV
-    flux = [f * u.keV.to(u.erg) for f in data['flux']]               # ergs / cm2 / s
-    flux_lo = [f * u.keV.to(u.erg) for f in data['flux_error_lo']]  # ergs / cm2 / s
-    flux_hi = [f * u.keV.to(u.erg) for f in data['flux_error_hi']]  # ergs / cm2 / s
-    # flux_err = flux_hi  # ergs / cm2 / s
-    flux_err = list()
-    for (h, l, e) in zip(flux_hi, flux_lo, energy):
-        if e < 1e3:
-            flux_err.append(l)
-        else:
-            flux_err.append((l + h) / 2)
-    return energy, flux, flux_err
 
 
 def comp_phase(mjd_0, T, mjd):
