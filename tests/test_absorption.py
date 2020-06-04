@@ -21,7 +21,7 @@ def test_tau():
         Tstar=TSTAR,
         Rstar=RSTAR,
         read_table=True,
-        name_table='absorption_table_test.dat'
+        name_table='absorption_table.dat'
     )
 
     logging.info('Tau from class')
@@ -46,7 +46,7 @@ def test_tau():
     tau2 = abso.TauGG(
         en=1,
         Tstar=TSTAR,
-        Rstar=RSTA,
+        Rstar=RSTAR,
         obs=obs,
         pos=np.array([0, 2, 1.5]),
         no_int=False,
@@ -62,7 +62,7 @@ def test_alpha():
         Tstar=TSTAR,
         Rstar=RSTAR,
         read_table=True,
-        name_table='absorption_table_test.dat'
+        name_table='absorption_table.dat'
     )
 
     # Alpha
@@ -115,7 +115,7 @@ def test_energy():
         Tstar=TSTAR,
         Rstar=RSTAR,
         read_table=True,
-        name_table='absorption_table_test.dat'
+        name_table='absorption_table.dat'
     )
 
     energy = np.logspace(-1, 0.9, 40)
@@ -165,7 +165,7 @@ def test_energy():
 if __name__ == '__main__':
 
     # test_make_table()
-    # test_tau()
-    # test_alpha()
+    test_tau()
+    test_alpha()
     test_energy()
     pass

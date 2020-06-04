@@ -69,7 +69,7 @@ class Absorption(object):
         for (alpha, en0) in itertools.product(alpha_list, en_list):
             if step % 100 == 0 and step > 0:
                 logging.info('Step {}'.format(step))
-                logging.info('time/step [s] = {}'.formt((time.time() - start_time) / step))
+                logging.info('time/step [s] = {}'.format((time.time() - start_time) / step))
 
             sig_spec = [
                 SigmaGG(en0=en0, en1=e * u.eV.to(u.TeV), alpha=alpha)
