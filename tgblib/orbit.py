@@ -4,10 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import itertools
-import copy
+import logging
 from numpy import arccos
 from numpy.linalg import norm
-from itertools import combinations
 
 import astropy.constants as const
 import astropy.units as u
@@ -15,24 +14,41 @@ import astropy.units as u
 from tgblib import util
 
 
-class SystemParameters(object):
+class SystemParameters:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        required_par = ['period', 'eccentricity', 'inclination',
-                        'omega', 'mass_star', 'mjd_0', 'mass_compact',
-                        'temp_star', 'rad_star', 'phase_per', 'x1', 'f_m']
+        required_par = [
+            'period',
+            'eccentricity',
+            'inclination',
+            'omega',
+            'mass_star',
+            'mjd_0',
+            'mass_compact',
+            'temp_star',
+            'rad_star',
+            'phase_per',
+            'x1',
+            'f_m'
+        ]
         for p in required_par:
             if p not in kwargs.keys():
-                print('Error: SystemParameters does not contain', p)
+                logging.error('Error: SystemParameters does not contain {}'.format(p))
         if 'is_ref' not in kwargs.keys():
             self.__dict__['is_ref'] = False
         if 'f_m' not in kwargs.keys():
             self.__dict__['f_m'] = None
 
 
-class SetOfOrbits(object):
-    def __init__(self, phase_step=0.001,
-                 color='b', systems=None, mjd_pts=None, mjd_ph_0=None):
+class SetOfOrbits:
+    def __init__(
+        self,
+        phase_step=0.001,
+        color='b',
+        systems=None,
+        mjd_pts=None,
+        mjd_ph_0=None
+    ):
         self.sys = systems if isinstance(systems, list) else [systems]
         self.mjd_ph_0 = mjd_ph_0
         self.color = color
@@ -99,8 +115,15 @@ class SetOfOrbits(object):
                 idx -= len(ph)
             self.mjd_phase[idx] = self.mjd_ph_0 + i * mjd_step
 
-    def plot_orbit(self, noPoint=False, only_ref=False, noAxes=False,
-                   color=None, lw=None, set_aspect=True):
+    def plot_orbit(
+        self,
+        noPoint=False,
+        only_ref=False,
+        noAxes=False,
+        color=None,
+        lw=None,
+        set_aspect=True
+    ):
         ax = plt.gca()
         cc = color if color is not None else self.color
         if not noAxes:
@@ -111,25 +134,58 @@ class SetOfOrbits(object):
         plt.plot([0], [0], marker='o', c='k', linestyle='None', markersize=9)
         if not only_ref:
             for i in range(self.n_sys):
-                plt.plot(self.orbits[i].posX, self.orbits[i].posY, linestyle='-',
-                         marker='None', c=cc)
+                plt.plot(
+                    self.orbits[i].posX,
+                    self.orbits[i].posY,
+                    linestyle='-',
+                    marker='None',
+                    c=cc
+                )
                 if self.orbits[i].n_pts > 0 and not noPoint:
-                    plt.plot(self.orbits[i].posX_pts, self.orbits[i].posY_pts,
-                             linestyle='None', marker='o', c='g', markersize=7)
+                    plt.plot(
+                        self.orbits[i].posX_pts,
+                        self.orbits[i].posY_pts,
+                        linestyle='None',
+                        marker='o',
+                        c='g',
+                        markersize=7
+                    )
         else:
-            plt.plot(self.orbit_ref.posX, self.orbit_ref.posY, linestyle='-',
-                     linewidth=lw, marker='None', c=cc)
+            plt.plot(
+                self.orbit_ref.posX,
+                self.orbit_ref.posY,
+                linestyle='-',
+                linewidth=lw,
+                marker='None',
+                c=cc
+            )
 
         if self.orbit_ref.n_pts > 0 and not noPoint:
-            plt.plot(self.orbit_ref.posX_pts, self.orbit_ref.posY_pts,
-                     linestyle='None', marker='o', c='g', markersize=10)
+            plt.plot(
+                self.orbit_ref.posX_pts,
+                self.orbit_ref.posY_pts,
+                linestyle='None',
+                marker='o',
+                c='g',
+                markersize=10
+            )
 
         if set_aspect:
             ax.set_aspect('equal', adjustable='datalim')
 
-    def plot_distance(self, noPoint=False, noAxes=False, only_ref=False, band=True,
-                      all_lines=True, in_mjd=False,
-                      color=None, ls=None, label='None', alpha=None):
+    def plot_distance(
+        self,
+        noPoint=False,
+        noAxes=False,
+        only_ref=False,
+        band=True,
+        all_lines=True,
+        in_mjd=False,
+        color=None,
+        ls=None,
+        label='None',
+        alpha=None
+    ):
         ax = plt.gca()
         cc = color if color is not None else self.color
         ls = ls if ls is not None else '-'
@@ -142,42 +198,96 @@ class SetOfOrbits(object):
         if not only_ref:
             if band:
                 x_band0 = self.phase_band if not in_mjd else self.mjd_phase
-                x_band, hi_band, lo_band = zip(*sorted(zip(x_band0,
-                                                           self.distance_band_hi,
-                                                           self.distance_band_lo)))
-                ax.fill_between(x_band, lo_band, hi_band,
-                                color=cc, alpha=aa)
+                x_band, hi_band, lo_band = zip(*sorted(zip(
+                    x_band0,
+                    self.distance_band_hi,
+                    self.distance_band_lo
+                )))
+                ax.fill_between(
+                    x_band,
+                    lo_band,
+                    hi_band,
+                    color=cc,
+                    alpha=aa
+                )
             if all_lines:
                 for i in range(self.n_sys):
                     ll = label if i == 0 else None
                     x_plot0 = self.orbits[i].phase if not in_mjd else self.mjd_phase
-                    x_plot, rad_plot = zip(*sorted(zip(x_plot0,
-                                                       self.orbits[i].radius)))
-                    plt.plot(x_plot, rad_plot, linestyle=ls, marker='None',
-                             c=cc, markersize=2, label=ll)
+                    x_plot, rad_plot = zip(*sorted(zip(
+                        x_plot0,
+                        self.orbits[i].radius
+                    )))
+                    plt.plot(
+                        x_plot,
+                        rad_plot,
+                        linestyle=ls,
+                        marker='None',
+                        c=cc,
+                        markersize=2,
+                        label=ll
+                    )
                     if self.orbits[i].n_pts > 0 and not noPoint:
-                        plt.plot(self.orbits[i].phase_pts, self.orbits[i].radius_pts,
-                                 linestyle='None', marker='o', c='g', markersize=10)
+                        plt.plot(
+                            self.orbits[i].phase_pts,
+                            self.orbits[i].radius_pts,
+                            linestyle='None',
+                            marker='o',
+                            c='g',
+                            markersize=10
+                        )
 
             x_plot0 = self.orbit_ref.phase if not in_mjd else self.mjd_phase
             x_plot, rad_plot = zip(*sorted(zip(x_plot0, self.orbit_ref.radius)))
 
-            plt.plot(x_plot, rad_plot, linestyle=ls, marker='None',
-                     linewidth=2, c=cc, markersize=2, label=label)
+            plt.plot(
+                x_plot,
+                rad_plot,
+                linestyle=ls,
+                marker='None',
+                linewidth=2,
+                c=cc,
+                markersize=2,
+                label=label
+            )
 
         else:
             x_plot0 = self.orbit_ref.phase if not in_mjd else self.mjd_phase
             x_plot, rad_plot = zip(*sorted(zip(x_plot0, self.orbit_ref.radius)))
 
-            plt.plot(x_plot, rad_plot, linestyle=ls, marker='None',
-                     linewidth=2, c=cc, markersize=2, label=label)
+            plt.plot(
+                x_plot,
+                rad_plot,
+                linestyle=ls,
+                marker='None',
+                linewidth=2,
+                c=cc,
+                markersize=2,
+                label=label
+            )
 
         if self.orbit_ref.n_pts > 0 and not noPoint:
-            plt.plot(self.orbit_ref.phase_pts, self.orbit_ref.radius_pts,
-                     linestyle='None', marker='o', c='g', markersize=10)
+            plt.plot(
+                self.orbit_ref.phase_pts,
+                self.orbit_ref.radius_pts,
+                linestyle='None',
+                marker='o',
+                c='g',
+                markersize=10
+            )
 
-    def plot_theta_scat(self, noPoint=False, noAxes=False, label='None',
-                        only_ref=False, band=True, all_lines=True, color=None, ls=None, alpha=None):
+    def plot_theta_scat(
+        self,
+        noPoint=False,
+        noAxes=False,
+        label='None',
+        only_ref=False,
+        band=True,
+        all_lines=True,
+        color=None,
+        ls=None,
+        alpha=None
+    ):
         ax = plt.gca()
         cc = color if color is not None else self.color
         ls = ls if ls is not None else '-'
@@ -189,42 +299,84 @@ class SetOfOrbits(object):
 
         if not only_ref:
             if band:
-                ph_band, hi_band, lo_band = zip(*sorted(zip(self.phase_band,
-                                                            self.theta_band_hi,
-                                                            self.theta_band_lo)))
-                ax.fill_between(ph_band, [t / util.degToRad for t in lo_band],
-                                [t / util.degToRad for t in hi_band],
-                                color=cc, alpha=aa)
+                ph_band, hi_band, lo_band = zip(*sorted(zip(
+                    self.phase_band,
+                    self.theta_band_hi,
+                    self.theta_band_lo
+                )))
+                ax.fill_between(
+                    ph_band,
+                    [t / util.degToRad for t in lo_band],
+                    [t / util.degToRad for t in hi_band],
+                    color=cc,
+                    alpha=aa
+                )
             if all_lines:
                 for i in range(self.n_sys):
                     ll = label if i == 0 else None
-                    ph_plot, th_plot = zip(*sorted(zip(self.orbits[i].phase,
-                                                       self.orbits[i].theta_scat)))
-                    plt.plot(ph_plot, [t / util.degToRad for t in th_plot],
-                             linestyle=ls, marker='None',
-                             c=cc, markersize=2, label=ll)
+                    ph_plot, th_plot = zip(*sorted(zip(
+                        self.orbits[i].phase,
+                        self.orbits[i].theta_scat
+                    )))
+                    plt.plot(
+                        ph_plot,
+                        [t / util.degToRad for t in th_plot],
+                        linestyle=ls,
+                        marker='None',
+                        c=cc,
+                        markersize=2,
+                        label=ll
+                    )
                     if self.orbits[i].n_pts > 0 and not noPoint:
-                        plt.plot(self.orbits[i].phase_pts,
-                                 [t / util.degToRad for t in self.orbits[i].theta_scat_pts],
-                                 linestyle='None', marker='o', c='g', markersize=10)
+                        plt.plot(
+                            self.orbits[i].phase_pts,
+                            [t / util.degToRad for t in self.orbits[i].theta_scat_pts],
+                            linestyle='None',
+                            marker='o',
+                            c='g',
+                            markersize=10
+                        )
 
-            ph_plot, th_plot = zip(*sorted(zip(self.orbit_ref.phase,
-                                           self.orbit_ref.theta_scat)))
-            plt.plot(ph_plot, [t / util.degToRad for t in th_plot],
-                     linestyle=ls, marker='None', c=cc,
-                     linewidth=2, markersize=2, label=label)
+            ph_plot, th_plot = zip(*sorted(zip(
+                self.orbit_ref.phase,
+                self.orbit_ref.theta_scat
+            )))
+            plt.plot(
+                ph_plot,
+                [t / util.degToRad for t in th_plot],
+                linestyle=ls,
+                marker='None',
+                c=cc,
+                linewidth=2,
+                markersize=2,
+                label=label
+            )
 
         else:
-            ph_plot, th_plot = zip(*sorted(zip(self.orbit_ref.phase,
-                                               self.orbit_ref.theta_scat)))
-            plt.plot(ph_plot, [t / util.degToRad for t in th_plot],
-                     linestyle=ls, marker='None', c=cc,
-                     linewidth=2, markersize=2, label=label)
+            ph_plot, th_plot = zip(*sorted(zip(
+                self.orbit_ref.phase,
+                self.orbit_ref.theta_scat
+            )))
+            plt.plot(
+                ph_plot,
+                [t / util.degToRad for t in th_plot],
+                linestyle=ls,
+                marker='None',
+                c=cc,
+                linewidth=2,
+                markersize=2,
+                label=label
+            )
 
         if self.orbit_ref.n_pts > 0 and not noPoint:
-            plt.plot(self.orbit_ref.phase_pts,
-                     [t / util.degToRad for t in self.orbit_ref.theta_scat_pts],
-                     linestyle='None', marker='o', c='g', markersize=10)
+            plt.plot(
+                self.orbit_ref.phase_pts,
+                [t / util.degToRad for t in self.orbit_ref.theta_scat_pts],
+                linestyle='None',
+                marker='o',
+                c='g',
+                markersize=10
+            )
 
     def plot_density(self, noPoint=False, only_ref=False, band=True, all_lines=True):
         ax = plt.gca()
@@ -235,29 +387,62 @@ class SetOfOrbits(object):
 
         if not only_ref:
             if band:
-                ph_band, hi_band, lo_band = zip(*sorted(zip(self.phase_band,
-                                                            self.density_band_hi,
-                                                            self.density_band_lo)))
-                ax.fill_between(ph_band, lo_band, hi_band,
-                                color=self.color, alpha=0.4)
+                ph_band, hi_band, lo_band = zip(*sorted(zip(
+                    self.phase_band,
+                    self.density_band_hi,
+                    self.density_band_lo
+                )))
+                ax.fill_between(
+                    ph_band,
+                    lo_band,
+                    hi_band,
+                    color=self.color,
+                    alpha=0.4
+                )
 
             if all_lines:
                 for i in range(self.n_sys):
-                    ph_plot, d_plot = zip(*sorted(zip(self.orbits[i].phase,
-                                                      self.orbits[i].density)))
-                    plt.plot(ph_plot, d_plot,
-                             linestyle='-', marker='None', c=self.color, markersize=2)
+                    ph_plot, d_plot = zip(*sorted(zip(
+                        self.orbits[i].phase,
+                        self.orbits[i].density
+                    )))
+                    plt.plot(
+                        ph_plot,
+                        d_plot,
+                        linestyle='-',
+                        marker='None',
+                        c=self.color,
+                        markersize=2
+                    )
                     if self.orbits[i].n_pts > 0 and not noPoint:
-                        plt.plot(self.orbits[i].phase_pts, self.orbits[i].density_pts,
-                                 linestyle='None', marker='o', c='g', markersize=10)
+                        plt.plot(
+                            self.orbits[i].phase_pts,
+                            self.orbits[i].density_pts,
+                            linestyle='None',
+                            marker='o',
+                            c='g',
+                            markersize=10
+                        )
 
         ph_plot, d_plot = zip(*sorted(zip(self.orbit_ref.phase, self.orbit_ref.density)))
-        plt.plot(ph_plot, d_plot,
-                 linestyle='-', marker='None', c=self.color,
-                 linewidth=3, markersize=2)
+        plt.plot(
+            ph_plot,
+            d_plot,
+            linestyle='-',
+            marker='None',
+            c=self.color,
+            linewidth=3,
+            markersize=2
+        )
         if self.orbit_ref.n_pts > 0 and not noPoint:
-            plt.plot(self.orbit_ref.phase_pts, self.orbit_ref.density_pts,
-                     linestyle='None', marker='o', c='g', markersize=10)
+            plt.plot(
+                self.orbit_ref.phase_pts,
+                self.orbit_ref.density_pts,
+                linestyle='None',
+                marker='o',
+                c='g',
+                markersize=10
+            )
 
     def print_pts(self):
         for i in range(self.orbit_ref.n_pts):
@@ -279,10 +464,10 @@ class SetOfOrbits(object):
         return pts
 
 
-class Orbit(object):
+class Orbit:
     def __init__(self, system, phase_step=0.001):
         if not isinstance(system, SystemParameters):
-            print('Orbit: system is not an instance of SystemParameters')
+            logging.error('Orbit: system is not an instance of SystemParameters')
         self.phase_step = phase_step
         self.mjd_0 = system.mjd_0
         self.eccentricity = system.eccentricity
@@ -291,8 +476,12 @@ class Orbit(object):
         self.phase_per = system.phase_per
         self.period = system.period
         self.mass_compact = system.mass_compact
-        self.mass_star = self.compute_mass_star(system.f_m, self.mass_compact, self.inclination)\
-            if system.f_m is not None else system.mass_star
+
+        if system.f_m is not None:
+            self.mass_star = self.compute_mass_star(system.f_m, self.mass_compact, self.inclination)
+        else:
+            self.mass_star = system.mass_star
+
         self.mass_ratio = self.mass_star / self.mass_compact
         self.a = self.mass_ratio * system.x1 / math.sin(self.inclination)
         self.apastron = self.a * (1 + self.eccentricity)
@@ -300,8 +489,6 @@ class Orbit(object):
         self.area = (self.a**2) * math.sqrt(1 - self.eccentricity**2) * math.pi
         self.rstar = system.rad_star
         self.tstar = system.temp_star
-
-        # print('a=', self.a, ' i=', self.inclination)
 
         self.phase, self.distance = np.array([]), np.array([])
         self.posX, self.posY = np.array([]), np.array([])
@@ -390,33 +577,53 @@ class Orbit(object):
             self.pos3D_pts.append(pos3D)
 
 
-def generate_systems(eccentricity, phase_per,
-                     inclination, omega,
-                     period, mjd_0,
-                     temp_star, rad_star,
-                     mass_star, mass_compact,
-                     f_m, x1):
+def generate_systems(
+    eccentricity,
+    phase_per,
+    inclination,
+    omega,
+    period,
+    mjd_0,
+    temp_star,
+    rad_star,
+    mass_star,
+    mass_compact,
+    f_m,
+    x1
+):
     systems = list()
-    comb = itertools.product(*[eccentricity, phase_per,
-                               inclination, omega,
-                               period, mjd_0,
-                               temp_star, rad_star,
-                               mass_star, mass_compact, f_m, x1])
+    comb = itertools.product(*[
+        eccentricity,
+        phase_per,
+        inclination,
+        omega,
+        period,
+        mjd_0,
+        temp_star,
+        rad_star,
+        mass_star,
+        mass_compact,
+        f_m,
+        x1
+    ])
     is_ref = True
     for c in comb:
         ecc, ph, inc, om, per, mjd_0, temp, rad, m1, m2, f, x1 = c
-        sys = SystemParameters(eccentricity=ecc,
-                               phase_per=ph,
-                               inclination=inc,
-                               omega=om,
-                               period=per,
-                               mjd_0=mjd_0,
-                               temp_star=temp,
-                               rad_star=rad,
-                               mass_star=m1,
-                               mass_compact=m2,
-                               f_m=f,
-                               x1=x1, is_ref=is_ref)
+        sys = SystemParameters(
+            eccentricity=ecc,
+            phase_per=ph,
+            inclination=inc,
+            omega=om,
+            period=per,
+            mjd_0=mjd_0,
+            temp_star=temp,
+            rad_star=rad,
+            mass_star=m1,
+            mass_compact=m2,
+            f_m=f,
+            x1=x1,
+            is_ref=is_ref
+        )
         systems.append(sys)
         is_ref = False
 
@@ -450,31 +657,36 @@ if __name__ == '__main__':
     #                               x1=[0.120, 0.091, 0.149])
 
     label = 'Disk'
-    systems_ca = generate_systems(eccentricity=[0.83],
-                                  phase_per=[0.967],
-                                  inclination=[63.5 * util.degToRad, 47 * util.degToRad, 80 * util.degToRad],
-                                  omega=[129 * util.degToRad],
-                                  period=[315],
-                                  mjd_0=[54857.5],
-                                  temp_star=[30e3],
-                                  rad_star=[7.8],
-                                  mass_star=[16],
-                                  mass_compact=[1.5],
-                                  f_m=[0.01],
-                                  x1=[0.362])
+    systems_ca = generate_systems(
+        eccentricity=[0.83],
+        phase_per=[0.967],
+        inclination=[63.5 * util.degToRad, 47 * util.degToRad, 80 * util.degToRad],
+        omega=[129 * util.degToRad],
+        period=[315],
+        mjd_0=[54857.5],
+        temp_star=[30e3],
+        rad_star=[7.8],
+        mass_star=[16],
+        mass_compact=[1.5],
+        f_m=[0.01],
+        x1=[0.362]
+    )
 
-    systems_mo = generate_systems(eccentricity=[0.64],
-                                  phase_per=[0.663],
-                                  inclination=[35 * util.degToRad, 27 * util.degToRad, 44 * util.degToRad],
-                                  omega=[271 * util.degToRad],
-                                  period=[313],
-                                  mjd_0=[54857.5],
-                                  temp_star=[30e3],
-                                  rad_star=[7.8],
-                                  mass_star=[16],
-                                  mass_compact=[1.5],
-                                  f_m=[0.0024],
-                                  x1=[0.120])
+    systems_mo = generate_systems(
+        eccentricity=[0.64],
+        phase_per=[0.663],
+        inclination=[35 * util.degToRad, 27 * util.degToRad, 44 * util.degToRad],
+        omega=[271 * util.degToRad],
+        period=[313],
+        mjd_0=[54857.5],
+        temp_star=[30e3],
+        rad_star=[7.8],
+        mass_star=[16],
+        mass_compact=[1.5],
+        f_m=[0.0024],
+        x1=[0.120]
+    )
+
     mjd_pts = [58079, 58101]
     orbits_ca = SetOfOrbits(phase_step=0.0005, color='r', systems=systems_ca, mjd_pts=mjd_pts)
     orbits_mo = SetOfOrbits(phase_step=0.0005, color='b', systems=systems_mo, mjd_pts=mjd_pts)
