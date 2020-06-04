@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import matplotlib.pyplot as plt
 import numpy as np
 import math
@@ -10,16 +8,6 @@ from astropy.table import QTable
 from astropy.io import ascii
 
 from tgblib import util
-
-MJD_MEAN = {
-    0: 58079,
-    1: 58101,
-    2: 58101,
-    3: 58101,
-    4: 58101
-}
-
-NO_OF_PERIODS = 5
 
 
 def get_data(period, onlyNuSTAR=False, onlyVTS=False):

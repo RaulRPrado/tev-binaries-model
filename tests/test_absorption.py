@@ -5,20 +5,21 @@ import numpy as np
 import logging
 
 import tgblib.absorption as abso
+from tgblib.parameters import TSTAR, RSTAR
 
 logging.getLogger().setLevel(logging.DEBUG)
 
 
 def test_make_table():
-    Abs = abso.Absorption(Tstar=3e4, Rstar=7.8, read_table=False)
+    Abs = abso.Absorption(Tstar=TSTAR, Rstar=RSTAR, read_table=False)
     Abs.ProduceLambdaTable(n_en=10, n_alpha=10, name='absorption_table_test.dat')
 
 
 def test_tau():
     obs = np.array([0, 0, -1])
     Abs = abso.Absorption(
-        Tstar=3e4,
-        Rstar=7.8,
+        Tstar=TSTAR,
+        Rstar=RSTAR,
         read_table=True,
         name_table='absorption_table_test.dat'
     )
@@ -31,8 +32,8 @@ def test_tau():
 
     tau1 = abso.TauGG(
         en=1,
-        Tstar=3e4,
-        Rstar=7.8,
+        Tstar=TSTAR,
+        Rstar=RSTAR,
         obs=obs,
         pos=np.array([0, 2, 1.5]),
         no_int=True,
@@ -44,8 +45,8 @@ def test_tau():
     logging.info('Tau from external function - no_int=False')
     tau2 = abso.TauGG(
         en=1,
-        Tstar=3e4,
-        Rstar=7.8,
+        Tstar=TSTAR,
+        Rstar=RSTA,
         obs=obs,
         pos=np.array([0, 2, 1.5]),
         no_int=False,
@@ -57,11 +58,9 @@ def test_tau():
 
 def test_alpha():
     # Ploting energy and alpha dependence
-    Tstar = 3e4
-    Rstar = 7.8
     Abs = abso.Absorption(
-        Tstar=Tstar,
-        Rstar=Rstar,
+        Tstar=TSTAR,
+        Rstar=RSTAR,
         read_table=True,
         name_table='absorption_table_test.dat'
     )
@@ -92,14 +91,14 @@ def test_alpha():
 
     ax.plot(
         alpha,
-        [abso.LambdaGG(en0=0.1, U=1, Tstar=Tstar, alpha=a) for a in alpha],
+        [abso.LambdaGG(en0=0.1, U=1, Tstar=TSTAR, alpha=a) for a in alpha],
         label='E=0.2 TeV',
         color='r',
         linestyle='-'
     )
     ax.plot(
         alpha,
-        [abso.LambdaGG(en0=1.2, U=1, Tstar=Tstar, alpha=a) for a in alpha],
+        [abso.LambdaGG(en0=1.2, U=1, Tstar=TSTAR, alpha=a) for a in alpha],
         label='E=1.2 TeV',
         color='r',
         linestyle='--'
@@ -112,11 +111,9 @@ def test_alpha():
 
 def test_energy():
     # Energy
-    Tstar = 3e4
-    Rstar = 7.8
     Abs = abso.Absorption(
-        Tstar=Tstar,
-        Rstar=Rstar,
+        Tstar=TSTAR,
+        Rstar=RSTAR,
         read_table=True,
         name_table='absorption_table_test.dat'
     )
@@ -131,7 +128,8 @@ def test_energy():
     ax.set_xlabel(r'$E$ [TeV]')
 
     ax.plot(
-        energy, [Abs.LambdaGG(en0=e, U=1, alpha=120) for e in energy],
+        energy,
+        [Abs.LambdaGG(en0=e, U=1, alpha=120) for e in energy],
         label=r'$\alpha=120$ deg',
         color='k',
         linestyle='-'
@@ -146,14 +144,14 @@ def test_energy():
 
     ax.plot(
         energy,
-        [abso.LambdaGG(en0=e, U=1, Tstar=Tstar, alpha=120) for e in energy],
+        [abso.LambdaGG(en0=e, U=1, Tstar=TSTAR, alpha=120) for e in energy],
         label=r'$\alpha=120$ deg',
         color='r',
         linestyle='-'
     )
     ax.plot(
         energy,
-        [abso.LambdaGG(en0=e, U=1, Tstar=Tstar, alpha=60) for e in energy],
+        [abso.LambdaGG(en0=e, U=1, Tstar=TSTAR, alpha=60) for e in energy],
         label=r'$\alpha=60$ deg',
         color='r',
         linestyle='--'

@@ -6,7 +6,8 @@ import logging
 import astropy.units as u
 
 from tgblib import util
-from tgblib.data import get_data, MJD_MEAN, NO_OF_PERIODS
+from tgblib.data import get_data
+from tgblib.parameters import MJD_MEAN, NO_OF_PERIODS
 from tgblib.spectrum_fit import SpectrumFit
 
 
