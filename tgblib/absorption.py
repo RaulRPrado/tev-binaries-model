@@ -2,10 +2,10 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from copy import copy
 import itertools
 import time
 import logging
+from copy import copy
 from numpy import arccos
 from numpy.linalg import norm
 from math import cos, log10, sqrt, log, pi, exp
@@ -13,8 +13,8 @@ from math import cos, log10, sqrt, log, pi, exp
 import astropy.constants as const
 import astropy.units as u
 
+import tgblib.pulsar as psr
 from tgblib import util
-from tgblib import pulsar as psr
 
 
 def SigmaGG(en0, en1, alpha):
