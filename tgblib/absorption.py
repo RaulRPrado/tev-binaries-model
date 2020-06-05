@@ -42,7 +42,7 @@ class Absorption(object):
         Tstar,
         Rstar,
         read_table=True,
-        name_table='absorption_table.txt'
+        name_table='absorption_table.dat'
     ):
         logging.info('Init Absorption')
         self.Tstar = Tstar  # in K
@@ -51,7 +51,7 @@ class Absorption(object):
         if read_table:
             self.ReadTable(name=name_table)
 
-    def ProduceLambdaTable(self, name='absorption_table.txt', n_en=100, n_alpha=200):
+    def ProduceLambdaTable(self, name='absorption_table.dat', n_en=100, n_alpha=200):
         logging.info('Producing table: {}'.format(name))
         logging.info('# of steps: {}'.format(n_alpha * n_en))
         lg_en = log10((self.Tstar * u.K * const.k_B).to(u.eV).value)

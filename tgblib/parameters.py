@@ -14,3 +14,8 @@ NO_OF_PERIODS = 5
 TSTAR = 3e4
 
 RSTAR = 7.8
+
+ELEC_SPEC_INDEX = {
+    0: 2.58,
+    1: 2.16
+}

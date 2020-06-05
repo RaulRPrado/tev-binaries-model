@@ -10,6 +10,8 @@ from tgblib.data import get_data
 from tgblib.parameters import MJD_MEAN, NO_OF_PERIODS
 from tgblib.spectrum_fit import SpectrumFit
 
+logging.getLogger().setLevel(logging.DEBUG)
+
 
 if __name__ == '__main__':
 

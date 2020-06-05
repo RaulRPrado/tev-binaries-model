@@ -6,12 +6,12 @@ import time
 import numpy as np
 import math
 import itertools
+import logging
 from scipy import stats
 from numpy.linalg import norm
 
 import astropy.units as u
 import astropy.constants as const
-import naima
 from iminuit import Minuit
 from naima.models import (
     ExponentialCutoffPowerLaw,
@@ -21,62 +21,90 @@ from naima.models import (
 )
 
 import tgblib.pulsar as psr
+import tgblib.absorption as abso
+import tgblib.parameters as pars
 from tgblib import data
 from tgblib import util
 from tgblib import orbit
-from tgblib import absorption
+
+logging.getLogger().setLevel(logging.DEBUG)
 
 
-def do_fit(label='', do_abs=True,
-           lgEdot_min=31, lgEdot_max=37.5, lgEdot_bins=10,
-           lgSigma_min=-3, lgSigma_max=-1, lgSigma_bins=10,
-           AlphaSigma=1,
-           ThetaIC=np.array([90, 90]),
-           Pos3D=[[1, 1, 1], [1, 1, 1]],
-           Dist=np.array([2, 2]), Tstar=30e3, Rstar=7.8, Mdot=1e-8,
-           Vw=1500, Alpha=np.array([2.58, 2.16])):
+def do_fit(
+    periods,  # [0, 1],
+    ThetaIC,  # np.array([90, 90]),
+    Pos3D,    # [[1, 1, 1], [1, 1, 1]],
+    Dist,     # np.array([2, 2]),
+    Alpha,     # np.array([2.58, 2.16])
+    label='',
+    do_abs=True,
+    lgEdot_min=31,
+    lgEdot_max=37.5,
+    lgEdot_bins=10,
+    lgSigma_min=-3,
+    lgSigma_max=-1,
+    lgSigma_bins=10,
+    Tstar=pars.TSTAR,
+    Rstar=pars.RSTAR,
+    AlphaSigma=1,
+    Mdot=1e-8,
+    Vw=1500
+):
 
-    print('Starting fitting')
-    OutFit = open('fit_results_' + label + '.txt', 'w')
+    logging.info('Starting fitting')
+    OutFit = open('fit_results/fit_results_' + label + '.txt', 'w')
 
     NEdot = (lgEdot_max - lgEdot_min) * lgEdot_bins
     NSigma = (lgSigma_max - lgSigma_min) * lgSigma_bins
-    Edot_list = np.logspace(lgEdot_min, lgEdot_max, NEdot)
-    Sigma_list = np.logspace(lgSigma_min, lgSigma_max, NSigma)
+    Edot_list = np.logspace(lgEdot_min, lgEdot_max, int(NEdot))
+    Sigma_list = np.logspace(lgSigma_min, lgSigma_max, int(NSigma))
 
-    print(NEdot * NSigma, 'iterations')
+    logging.info('{} iterations'.format(NEdot * NSigma))
+
+    n_periods = len(periods)
+
+    if len(ThetaIC) != n_periods:
+        logging.error('Argument with wrong dimensions - aborting')
+        return None
 
     # Absorption
     if do_abs:
         # Computing Taus
-        print('Computing absorption')
+        logging.info('Computing absorption')
         start = time.time()
         Obs = np.array([0, 0, -1])
-        Abs = absorption.Absorption(Tstar=Tstar, Rstar=Rstar)
-        data_en0, data_fl0, data_fl_er0 = data.get_data(0)
-        data_en1, data_fl1, data_fl_er1 = data.get_data(1)
-        DistFrac = np.linspace(0.01, 1, 50)
-        Tau0, Tau1 = dict(), dict()
-        DistTau0, DistTau1 = list(), list()
-        for i in range(len(data_en0)):
-            Tau0[i] = list()
-        for i in range(len(data_en1)):
-            Tau1[i] = list()
+        Abs = abso.Absorption(Tstar=Tstar, Rstar=Rstar)
 
-        for f in DistFrac:
-            dist0 = f * norm(Pos3D[0])
-            dist1 = f * norm(Pos3D[1])
-            PosStar0 = Pos3D[0] * dist0 / norm(Pos3D[0])
-            PosStar1 = Pos3D[1] * dist1 / norm(Pos3D[1])
-            for i in range(len(data_en0)):
-                tau = Abs.TauGG(en=data_en0[i] * u.keV.to(u.TeV), obs=Obs, pos=PosStar0)
-                Tau0[i].append(tau)
-            for i in range(len(data_en1)):
-                tau = Abs.TauGG(en=data_en1[i] * u.keV.to(u.TeV), obs=Obs, pos=PosStar1)
-                Tau1[i].append(tau)
-            DistTau0.append(dist0)
-            DistTau1.append(dist1)
-        print('Done, dt/s = ', time.time() - start)
+        data_en, data_fl, data_fl_er = list(), list(), list()
+        Tau = list()
+        DistTau = list()
+        for iper in periods:
+            en, fl, fl_er = data.get_data(iper)
+            data_en.append(en)
+            data_fl.append(fl)
+            data_fl_er.append(fl_er)
+            DistTau.append(list())
+            tt = dict()
+            for i in range(len(en)):
+                tt[i] = list()
+            Tau.append(tt)
+
+        DistFrac = np.linspace(0.01, 1, 50)
+
+        for ff in DistFrac:
+
+            for i_per in range(n_periods):
+
+                dist = ff * norm(Pos3D[i_per])
+                PosStar = Pos3D[i_per] * dist / norm(Pos3D[i_per])
+                for i_en in range(len(data_en[i_per])):
+                    tau = Abs.TauGG(en=data_en[i_per][i_en] * u.keV.to(u.TeV), obs=Obs, pos=PosStar)
+                    Tau[i_per][i_en].append(tau)
+                DistTau[i_per].append(dist)
+
+        logging.info('Abs done, dt/s = {}'.format(time.time() - start))
+
+        print(Tau)
 
         # # Ploting tau vs dist
         # plt.figure(figsize=(8, 6), tight_layout=True)
@@ -88,6 +116,8 @@ def do_fit(label='', do_abs=True,
         # ax.plot(DistTau0, Tau0[92], marker='o', linestyle='-')
         # ax.plot(DistTau0, Tau0[95], marker='o', linestyle='-')
         # plt.show()
+
+    return None
 
     for (Edot, Sigma) in itertools.product(Edot_list, Sigma_list):
 
@@ -248,19 +278,20 @@ def do_fit(label='', do_abs=True,
     OutFit.close()
 
 
-if __name__ == '__main__':
+def process_labels(labels):
 
-    labels = sys.argv[1:] if len(sys.argv) > 1 else ['ca_small']
-    print(labels)
-
-    lgEdot_min = 33
-    lgEdot_max = 39
-    lgSigma_min = math.log10(1e-3)
-    lgSigma_max = math.log10(3e-1)
-    # lgEdot_min = 37
-    # lgEdot_max = 41
-    # lgSigma_min = math.log10(1e-2)
-    # lgSigma_max = math.log10(1e2)
+    inPars = dict()
+    inPars['nPars'] = len(labels)
+    inPars['label'] = list()
+    inPars['orb'] = list()
+    inPars['inclination'] = list()
+    inPars['Mdot'] = list()
+    inPars['period'] = list()
+    inPars['omega'] = list()
+    inPars['eccentricity'] = list()
+    inPars['lgEdot_bins'] = list()
+    inPars['lgSigma_bins'] = list()
+    inPars['AlphaSigma'] = list()
 
     for ll in labels:
 
@@ -270,8 +301,10 @@ if __name__ == '__main__':
         elif 'mo' in ll:
             orb = 'mo'
         else:
-            print('ParameterError: unidentified orbit - aborting')
+            logging.error('ParameterError: unidentified orbit - aborting')
             continue
+        inPars['label'].append(ll)
+        inPars['orb'].append(orb)
 
         # Inclination
         if 'i_inf' in ll:
@@ -280,6 +313,7 @@ if __name__ == '__main__':
             inclination = 80 if orb == 'ca' else 42
         else:
             inclination = 69.5 if orb == 'ca' else 37
+        inPars['inclination'].append(inclination)
 
         # Mdot
         if 'm_inf' in ll:
@@ -288,6 +322,7 @@ if __name__ == '__main__':
             Mdot = 1e-8
         else:
             Mdot = 3.16e-9
+        inPars['Mdot'].append(Mdot)
 
         # Period
         if 'p_inf' in ll:
@@ -296,6 +331,7 @@ if __name__ == '__main__':
             period = 317
         else:
             period = 315
+        inPars['period'].append(period)
 
         # Omega
         if 'o_inf' in ll:
@@ -304,6 +340,7 @@ if __name__ == '__main__':
             omega = 146 if orb == 'ca' else 300
         else:
             omega = 129 if orb == 'ca' else 271
+        inPars['omega'].append(omega)
 
         # Eccentricity
         if 'e_inf' in ll:
@@ -312,6 +349,7 @@ if __name__ == '__main__':
             eccentricity = 0.91 if orb == 'ca' else 0.93
         else:
             eccentricity = 0.83 if orb == 'ca' else 0.64
+        inPars['eccentricity'].append(eccentricity)
 
         # Size
         if 'small' in ll:
@@ -320,6 +358,8 @@ if __name__ == '__main__':
         else:
             lgEdot_bins = 40
             lgSigma_bins = 200
+        inPars['lgEdot_bins'].append(lgEdot_bins)
+        inPars['lgSigma_bins'].append(lgSigma_bins)
 
         # Alpha
         if 'a_inf' in ll:
@@ -328,141 +368,84 @@ if __name__ == '__main__':
             AlphaSigma = 1.5
         else:
             AlphaSigma = 1.0
+        inPars['AlphaSigma'].append(AlphaSigma)
 
-        print(orb, inclination, Mdot)
+    return inPars
+
+
+if __name__ == '__main__':
+
+    labels = sys.argv[1:] if len(sys.argv) > 1 else ['ca_small']
+    logging.info('Labels {}'.format(labels))
+
+    lgEdot_min = 33
+    lgEdot_max = 39
+    lgSigma_min = math.log10(1e-3)
+    lgSigma_max = math.log10(3e-1)
+
+    periods = [0, 1]
+    mjd_pts = [pars.MJD_MEAN[p] for p in periods]
+    alphas = [pars.ELEC_SPEC_INDEX[p] for p in periods]
+
+    inPars = process_labels(labels)
+
+    for iPar in range(inPars['nPars']):
 
         # Orbits
-        if orb == 'ca':
-            systems = orbit.generate_systems(eccentricity=[eccentricity],
-                                             phase_per=[0.967],
-                                             inclination=[inclination * util.degToRad],  # 47-80
-                                             omega=[omega * util.degToRad],
-                                             period=[period],
-                                             mjd_0=[54857.5],
-                                             temp_star=[30e3],
-                                             rad_star=[7.8],
-                                             mass_star=[16],
-                                             mass_compact=[1.4],
-                                             f_m=[0.01],
-                                             x1=[0.362])
-        elif orb == 'mo':
-            systems = orbit.generate_systems(eccentricity=[eccentricity],
-                                             phase_per=[0.663],
-                                             inclination=[inclination * util.degToRad],
-                                             omega=[omega * util.degToRad],
-                                             period=[period],
-                                             mjd_0=[54857.5],
-                                             temp_star=[30e3],
-                                             rad_star=[7.8],
-                                             mass_star=[16],
-                                             mass_compact=[1.4],
-                                             f_m=[0.0024],
-                                             x1=[0.120])
+        if inPars['orb'][iPar] == 'ca':
+            systems = orbit.generate_systems(
+                eccentricity=[inPars['eccentricity'][iPar]],
+                phase_per=[0.967],
+                inclination=[inPars['inclination'][iPar] * util.degToRad],  # 47-80
+                omega=[inPars['omega'][iPar] * util.degToRad],
+                period=[inPars['period'][iPar]],
+                mjd_0=[pars.MJD_0],
+                temp_star=[pars.TSTAR],
+                rad_star=[pars.RSTAR],
+                mass_star=[16],
+                mass_compact=[1.4],
+                f_m=[0.01],
+                x1=[0.362]
+            )
+        elif inPars['orb'][iPar] == 'mo':
+            systems = orbit.generate_systems(
+                eccentricity=[inPars['eccentricity'][iPar]],
+                phase_per=[0.663],
+                inclination=[inPars['inclination'][iPar] * util.degToRad],  # 47-80
+                omega=[inPars['omega'][iPar] * util.degToRad],
+                period=[inPars['period'][iPar]],
+                mjd_0=[pars.MJD_0],
+                temp_star=[pars.TSTAR],
+                rad_star=[pars.RSTAR],
+                mass_star=[16],
+                mass_compact=[1.4],
+                f_m=[0.0024],
+                x1=[0.120]
+            )
 
-        mjd_pts = [58079, 58101]
         orbits = orbit.SetOfOrbits(phase_step=0.0005, color='r', systems=systems, mjd_pts=mjd_pts)
 
         pts_orbit = orbits.get_pts()
         dist_orbit = pts_orbit['distance']
         theta_orbit = pts_orbit['theta_ic']
         pos_orbit = pts_orbit['pos_3D']
-        print(pts_orbit)
 
         #######
         # Fit
-        do_fit(label=ll,
-               lgEdot_min=lgEdot_min, lgEdot_max=lgEdot_max, lgEdot_bins=lgEdot_bins,
-               lgSigma_min=lgSigma_min, lgSigma_max=lgSigma_max,
-               lgSigma_bins=lgSigma_bins,
-               Dist=np.array(dist_orbit),
-               ThetaIC=np.array(theta_orbit),
-               Pos3D=pos_orbit,
-               Vw=1500,
-               AlphaSigma=AlphaSigma,
-               Mdot=Mdot)
-
-
-    # label = 'test'
-    # ########
-    # # Orbits
-    # systems_ca = orbit.generate_systems(eccentricity=[0.83],
-    #                                     phase_per=[0.967],
-    #                                     inclination=[63.5 * util.degToRad],  # 47-80
-    #                                     omega=[129 * util.degToRad],
-    #                                     period=[315],
-    #                                     mjd_0=[54857.5],
-    #                                     temp_star=[28.5e3],
-    #                                     rad_star=[7.8],
-    #                                     mass_star=[16],
-    #                                     mass_compact=[1.4],
-    #                                     x1=[0.362])
-
-    # systems_mo = orbit.generate_systems(eccentricity=[0.64],
-    #                                     phase_per=[0.663],
-    #                                     inclination=[63.5 * util.degToRad],
-    #                                     omega=[271 * util.degToRad],
-    #                                     period=[313],
-    #                                     mjd_0=[54857.5],
-    #                                     temp_star=[28.5e3],
-    #                                     rad_star=[7.8],
-    #                                     mass_star=[16],
-    #                                     mass_compact=[1.4],
-    #                                     x1=[0.120])
-    # mjd_pts = [58079, 58101]
-    # orbits_ca = orbit.SetOfOrbits(phase_step=0.0005, color='r', systems=systems_ca, mjd_pts=mjd_pts)
-    # orbits_mo = orbit.SetOfOrbits(phase_step=0.0005, color='b', systems=systems_mo, mjd_pts=mjd_pts)
-
-    # pts_ca = orbits_ca.get_pts()
-    # dist_ca = pts_ca['distance']
-    # theta_ca = pts_ca['theta_ic']
-
-    # pts_mo = orbits_mo.get_pts()
-    # dist_mo = pts_mo['distance']
-    # theta_mo = pts_mo['theta_ic']
-
-    # #######
-    # # Fit
-    # Mdot = math.pow(10, -8.5)
-    # do_fit(label='mo_' + label + '_small',
-    #        lgEdot_min=34, lgEdot_max=40.5, lgEdot_bins=10,
-    #        lgSigma_min=math.log10(1e-3), lgSigma_max=math.log10(1e-1), lgSigma_bins=10,
-    #        Dist=np.array(dist_mo),
-    #        ThetaIC=np.array(theta_mo),
-    #        Vw=1500,
-    #        Mdot=Mdot)
-
-    # do_fit(label='ca_' + label + '_small',
-    #        lgEdot_min=34, lgEdot_max=40.5, lgEdot_bins=10,
-    #        lgSigma_min=math.log10(1e-3), lgSigma_max=math.log10(1e-1), lgSigma_bins=10,
-    #        Dist=np.array(dist_ca),
-    #        ThetaIC=np.array(theta_ca),
-    #        Vw=1500,
-    #        Mdot=Mdot)
-
-    # do_fit(label='mo_' + label + '_small',
-    #        lgEdot_min=33, lgEdot_max=40.5, lgEdot_bins=20,
-    #        lgSigma_min=math.log10(5e-3), lgSigma_max=math.log10(7e-2), lgSigma_bins=40,
-    #        Dist=np.array(dist_mo),
-    #        ThetaIC=np.array(theta_mo),
-    #        Mdot=Mdot)
-
-    # do_fit(label='ca_' + label + '_small',
-    #        lgEdot_min=33, lgEdot_max=40.5, lgEdot_bins=20,
-    #        lgSigma_min=math.log10(2e-2), lgSigma_max=math.log10(4e-1), lgSigma_bins=40,
-    #        Dist=np.array(dist_ca),
-    #        ThetaIC=np.array(theta_ca),
-    #        Mdot=Mdot)
-
-    # do_fit(label='mo_' + label,
-    #        lgEdot_min=32, lgEdot_max=40.5, lgEdot_bins=100,
-    #        lgSigma_min=math.log10(5e-3), lgSigma_max=math.log10(7e-2), lgSigma_bins=200,
-    #        Dist=np.array(dist_mo),
-    #        ThetaIC=np.array(theta_mo),
-    #        Mdot=Mdot)
-
-    # do_fit(label='ca_' + label,
-    #        lgEdot_min=32, lgEdot_max=40.5, lgEdot_bins=100,
-    #        lgSigma_min=math.log10(2e-2), lgSigma_max=math.log10(4e-1), lgSigma_bins=200,
-    #        Dist=np.array(dist_ca),
-    #        ThetaIC=np.array(theta_ca),
-    #        Mdot=Mdot)
+        do_fit(
+            label=inPars['label'][iPar],
+            periods=periods,
+            lgEdot_min=lgEdot_min,
+            lgEdot_max=lgEdot_max,
+            lgEdot_bins=inPars['lgEdot_bins'][iPar],
+            lgSigma_min=lgSigma_min,
+            lgSigma_max=lgSigma_max,
+            lgSigma_bins=inPars['lgSigma_bins'][iPar],
+            Dist=np.array(dist_orbit),
+            ThetaIC=np.array(theta_orbit),
+            Pos3D=pos_orbit,
+            Vw=1500,
+            AlphaSigma=inPars['AlphaSigma'][iPar],
+            Mdot=inPars['Mdot'][iPar],
+            Alpha=alphas
+        )

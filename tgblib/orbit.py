@@ -11,6 +11,7 @@ from numpy.linalg import norm
 import astropy.constants as const
 import astropy.units as u
 
+import tgblib.parameters as pars
 from tgblib import util
 
 
@@ -628,6 +629,23 @@ def generate_systems(
         is_ref = False
 
     return systems
+
+
+def getCasaresSystem():
+    return generate_systems(
+        eccentricity=[0.83],
+        phase_per=[0.967],
+        inclination=[69.5 * util.degToRad],  # 47-80
+        omega=[129 * util.degToRad],
+        period=[pars.TPER],
+        mjd_0=[pars.MJD_0],
+        temp_star=[pars.TSTAR],
+        rad_star=[pars.RSTAR],
+        mass_star=[16],
+        mass_compact=[1.4],
+        f_m=[0.01],
+        x1=[0.362]
+    )
 
 
 if __name__ == '__main__':
