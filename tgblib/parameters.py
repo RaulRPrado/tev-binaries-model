@@ -1,4 +1,6 @@
 
+MAX_PERIOD = 5
+
 MJD_MEAN = {
     0: 58079,
     1: 58101,

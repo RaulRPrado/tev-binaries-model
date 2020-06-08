@@ -68,7 +68,9 @@ def do_fit(
         return None
 
     # Absorption
-    if do_abs:
+    if not do_abs:
+        logging.info('Skipping absorption')
+    else:
         # Computing Taus
         logging.info('Computing absorption')
         start = time.time()
@@ -92,9 +94,7 @@ def do_fit(
         DistFrac = np.linspace(0.01, 1, 50)
 
         for ff in DistFrac:
-
             for i_per in range(n_periods):
-
                 dist = ff * norm(Pos3D[i_per])
                 PosStar = Pos3D[i_per] * dist / norm(Pos3D[i_per])
                 for i_en in range(len(data_en[i_per])):
@@ -103,8 +103,6 @@ def do_fit(
                 DistTau[i_per].append(dist)
 
         logging.info('Abs done, dt/s = {}'.format(time.time() - start))
-
-        print(Tau)
 
         # # Ploting tau vs dist
         # plt.figure(figsize=(8, 6), tight_layout=True)
@@ -117,35 +115,39 @@ def do_fit(
         # ax.plot(DistTau0, Tau0[95], marker='o', linestyle='-')
         # plt.show()
 
-    return None
-
     for (Edot, Sigma) in itertools.product(Edot_list, Sigma_list):
+
+        logging.debug('Starting Edot={}, Sigma={}'.format(Edot, Sigma))
 
         # Computed parameters
         DistPulsar = [psr.Rshock(Edot=Edot, Mdot=Mdot, Vw=Vw, D=d) for d in Dist]
         DistStar = Dist - DistPulsar
-        SigmaFac = pow(Dist[0] / Dist[1], AlphaSigma)
-        SigmaShock = [Sigma, Sigma * SigmaFac]
+        SigmaFac = [pow(Dist[0] / d, AlphaSigma) for d in Dist]
+        SigmaShock = [Sigma * f for f in SigmaFac]
         Bfield = [psr.B2_KC(Edot=Edot, Rs=dp, sigma=s) for (dp, s) in zip(DistPulsar, SigmaShock)]
         Density = [psr.PhotonDensity(Tstar=Tstar, Rstar=Rstar, d=d) for d in DistStar]
 
-        if Bfield[0] == 0 or Bfield[1] == 0:
+        if 0 in Bfield:
+            logging.info('Bfield is 0 - skipping')
             continue
 
         # Normalization
-        norm0_start = 1e24 / Bfield[0]
-        norm1_start = 1e24 / Bfield[1]
-
-        Norm0 = np.array([norm0_start, norm1_start])
+        Norm0 = np.array([1e24 / b for b in Bfield])
 
         # Fitting
-        fix_n0 = False
-        fit_n0 = Norm0[0]
+        fix_n = [True for p in range(pars.MAX_PERIOD)]
+        fit_n = [Norm0[0] for p in range(pars.MAX_PERIOD)]
 
-        fix_n1 = False
-        fit_n1 = Norm0[1]
+        for idx, iper in enumerate(periods):
+            fix_n[iper] = False
+            fit_n[iper] = Norm0[idx]
 
-        npar = 2 - int(fix_n0) - int(fix_n1)
+        logging.info('fix_n:')
+        logging.info(fix_n)
+        logging.info('fit_n:')
+        logging.info(fit_n)
+
+        npar = 5 - sum([int(f) for f in fix_n])
 
         ####################
         # Further parameters
@@ -158,122 +160,134 @@ def do_fit(
 
         ######################
         # Loading data
-        data_en0, data_fl0, data_fl_er0 = data.get_data(0)
-        data_en1, data_fl1, data_fl_er1 = data.get_data(1)
-        fermi_spec_en, fermi_spec_fl, fermi_spec_fl_er = data.get_fermi_spec()
-        fermi_lim_en, fermi_lim_fl, fermi_lim_fl_er = data.get_fermi_upper_limits()
 
-        # Absorption
-        if do_abs:
-            tau0, tau1 = list(), list()
-            for i in range(len(data_en0)):
-                t = np.interp(DistStar[0], xp=DistTau0, fp=Tau0[i])
-                tau0.append(t)
-            for i in range(len(data_en1)):
-                t = np.interp(DistStar[1], xp=DistTau1, fp=Tau1[i])
-                tau1.append(t)
-        else:
-            tau0 = [0] * len(data_en0)
-            tau1 = [0] * len(data_en1)
+        data_en, data_fl, data_fl_er = list(), list(), list()
+        tau = list()
+        model = list()
+        for ii in range(pars.MAX_PERIOD):
+            idx = periods.index(ii) if (ii in periods) else 0
 
-        ECPL0 = ExponentialCutoffPowerLaw(amplitude=1e20 / u.eV,
-                                          e_0=Eref,
-                                          alpha=Alpha[0],
-                                          e_cutoff=Ecut,
-                                          beta=1)
+            en, fl, fl_er = data.get_data(ii)
+            data_en.append(en)
+            data_fl.append(fl)
+            data_fl_er.append(fl_er)
 
-        SYN0 = Synchrotron(particle_distribution=ECPL0,
-                           B=Bfield[0] * u.G,
-                           Eemax=Emax,
-                           Eemin=Emin)
-        IC0 = InverseCompton(particle_distribution=ECPL0,
-                             seed_photon_fields=[['STAR',
-                                                  Tstar * u.K,
-                                                  Density[0] * u.erg / u.cm**3,
-                                                  ThetaIC[0] * u.deg]],
-                             Eemax=Emax,
-                             Eemin=Emin)
-        model0 = (SYN0.sed(photon_energy=[e * u.keV for e in data_en0], distance=SourceDist) +
-                  IC0.sed(photon_energy=[e * u.keV for e in data_en0], distance=SourceDist))
+            thisTau = list()
+            if do_abs and (ii in periods):
+                for ien in range(len(en)):
+                    thisTau.append(np.interp(DistStar[idx], xp=DistTau[idx], fp=Tau[idx][ien]))
+            else:
+                thisTau = [0] * len(en)
 
-        ECPL1 = ExponentialCutoffPowerLaw(amplitude=1e20 / u.eV,
-                                          e_0=Eref,
-                                          alpha=Alpha[1],
-                                          e_cutoff=Ecut,
-                                          beta=1)
+            tau.append(thisTau)
 
-        SYN1 = Synchrotron(particle_distribution=ECPL1,
-                           B=Bfield[1] * u.G,
-                           Eemax=Emax,
-                           Eemin=Emin)
-        IC1 = InverseCompton(particle_distribution=ECPL1,
-                             seed_photon_fields=[['STAR',
-                                                  Tstar * u.K,
-                                                  Density[1] * u.erg / u.cm**3,
-                                                  ThetaIC[1] * u.deg]],
-                             Eemax=Emax,
-                             Eemin=Emin)
-        model1 = (SYN1.sed(photon_energy=[e * u.keV for e in data_en1], distance=SourceDist) +
-                  IC1.sed(photon_energy=[e * u.keV for e in data_en1], distance=SourceDist))
+            ECPL = ExponentialCutoffPowerLaw(
+                amplitude=1e20 / u.eV,
+                e_0=Eref,
+                alpha=Alpha[idx],
+                e_cutoff=Ecut
+            )
 
-        if do_abs:
-            model0 = [math.exp(-t) * m for (m, t) in zip(model0, tau0)]
-            model1 = [math.exp(-t) * m for (m, t) in zip(model1, tau1)]
+            SYN = Synchrotron(
+                particle_distribution=ECPL,
+                B=Bfield[idx] * u.G,
+                Eemax=Emax,
+                Eemin=Emin
+            )
 
-        def least_square(n0, n1):
-            fac0 = n0 / 1e20
-            fac1 = n1 / 1e20
+            IC = InverseCompton(
+                particle_distribution=ECPL,
+                seed_photon_fields=[[
+                    'STAR',
+                    Tstar * u.K,
+                    Density[idx] * u.erg / u.cm**3,
+                    ThetaIC[idx] * u.deg
+                ]],
+                Eemax=Emax,
+                Eemin=Emin
+            )
+
+            thisModel = (
+                SYN.sed(photon_energy=[e * u.keV for e in en], distance=SourceDist) +
+                IC.sed(photon_energy=[e * u.keV for e in en], distance=SourceDist)
+            )
+
+            if do_abs:
+                thisModel = [math.exp(-t) * m for (m, t) in zip(thisModel, thisTau)]
+
+            model.append(thisModel)
+        # END for
+
+        def least_square(n0, n1, n2, n3, n4):
             chisq = 0
-            chisq += sum(util.vecChiSq([fac0 * m.value for m in model0], data_fl0, data_fl_er0))
-            chisq += sum(util.vecChiSq([fac1 * m.value for m in model1], data_fl1, data_fl_er1))
+            for ii, nn in enumerate([n0, n1, n2, n3, n4]):
+                if not fit_n[ii]:
+                    continue
+                chisq += sum(util.vecChiSq(
+                    [(nn / 1e20) * m.value for m in model[ii]],
+                    data_fl[ii],
+                    data_fl_er[ii])
+                )
             return chisq
 
-        minuit = Minuit(least_square,
-                        n0=fit_n0, fix_n0=fix_n0,
-                        n1=fit_n1, fix_n1=fix_n1,
-                        limit_n0=(norm0_start * 0.001, norm0_start * 1000),
-                        limit_n1=(norm1_start * 0.001, norm1_start * 1000))
+        minuit = Minuit(
+            least_square,
+            n0=fit_n[0], fix_n0=fix_n[0],
+            n1=fit_n[1], fix_n1=fix_n[1],
+            n2=fit_n[2], fix_n2=fix_n[2],
+            n3=fit_n[3], fix_n3=fix_n[3],
+            n4=fit_n[4], fix_n4=fix_n[4],
+            limit_n0=(fit_n[0] * 0.001, fit_n[0] * 1000),
+            limit_n1=(fit_n[1] * 0.001, fit_n[1] * 1000),
+            limit_n2=(fit_n[2] * 0.001, fit_n[2] * 1000),
+            limit_n3=(fit_n[3] * 0.001, fit_n[3] * 1000),
+            limit_n4=(fit_n[4] * 0.001, fit_n[4] * 1000)
+        )
 
         fmin, param = minuit.migrad()
 
-        print(minuit.matrix(correlation=True))
+        logging.info(minuit.matrix(correlation=True))
         chisq_min = minuit.fval
-        n0_fit = param[0]['value']
-        n0_err = param[0]['error']
-        n1_fit = param[1]['value']
-        n1_err = param[1]['error']
+        n_fit, n_err = list(), list()
+        ndf = 0
+        for ii in range(pars.MAX_PERIOD):
+            n_fit.append(param[ii]['value'])
+            n_err.append(param[ii]['error'])
+            if not fix_n[ii]:
+                ndf += len(data_en[ii])
+        ndf -= npar
+        # p_value = 1 - stats.chi2.cdf(chisq_min, ndf)
 
-        ndf = len(data_en0) + len(data_en1) - npar
-        p_value = 1 - stats.chi2.cdf(chisq_min, ndf)
+        logging.info('Fit')
+        logging.info('ChiSq/ndf = {}'.format(chisq_min / ndf))
+    #     print('p-value', p_value)
 
-        print('Fit')
-        print('ChiSq', chisq_min / ndf)
-        print('p-value', p_value)
+    #     if do_abs:
+    #         TauPrint0 = [tau0[len(data_en0) - 4], tau0[len(data_en0) - 1]]
+    #         TauPrint1 = [tau1[len(data_en1) - 3], tau1[len(data_en1) - 1]]
+    #     else:
+    #         TauPrint0 = [0, 0]
+    #         TauPrint1 = [0, 0]
 
-        if do_abs:
-            TauPrint0 = [tau0[len(data_en0) - 4], tau0[len(data_en0) - 1]]
-            TauPrint1 = [tau1[len(data_en1) - 3], tau1[len(data_en1) - 1]]
-        else:
-            TauPrint0 = [0, 0]
-            TauPrint1 = [0, 0]
-
-        if chisq_min - ndf < 16:
+        if chisq_min - ndf < 25:
             OutFit.write(str(chisq_min) + ' ')
             OutFit.write(str(ndf) + ' ')
-            OutFit.write(str(math.log10(n0_fit)) + ' ')
-            OutFit.write(str(math.log10(n1_fit)) + ' ')
+            for ii in range(pars.MAX_PERIOD):
+                if not fix_n[ii]:
+                    OutFit.write(str(math.log10(n_fit[ii])) + ' ')
             OutFit.write(str(math.log10(Edot)) + ' ')
             OutFit.write(str(math.log10(Sigma)) + ' ')
-            OutFit.write(str(Dist[0]) + ' ')
-            OutFit.write(str(DistPulsar[0]) + ' ')
-            OutFit.write(str(Bfield[0]) + ' ')
-            OutFit.write(str(Dist[1]) + ' ')
-            OutFit.write(str(DistPulsar[1]) + ' ')
-            OutFit.write(str(Bfield[1]) + ' ')
-            OutFit.write(str(TauPrint0[0]) + ' ')
-            OutFit.write(str(TauPrint0[1]) + ' ')
-            OutFit.write(str(TauPrint1[0]) + ' ')
-            OutFit.write(str(TauPrint1[1]) + '\n')
+            for ii in range(pars.MAX_PERIOD):
+                if not fix_n[ii]:
+                    idx = periods.index(ii)
+                    OutFit.write(str(Dist[idx]) + ' ')
+                    OutFit.write(str(DistPulsar[idx]) + ' ')
+                    OutFit.write(str(Bfield[idx]) + ' ')
+    #         OutFit.write(str(TauPrint0[0]) + ' ')
+    #         OutFit.write(str(TauPrint0[1]) + ' ')
+    #         OutFit.write(str(TauPrint1[0]) + ' ')
+    #         OutFit.write(str(TauPrint1[1]) + '\n')
+            OutFit.write('\n')
 
     OutFit.close()
 
@@ -292,13 +306,14 @@ def process_labels(labels):
     inPars['lgEdot_bins'] = list()
     inPars['lgSigma_bins'] = list()
     inPars['AlphaSigma'] = list()
+    inPars['NoAbs'] = list()
 
     for ll in labels:
 
         # Orbit
         if 'ca' in ll:
             orb = 'ca'
-        elif 'mo' in ll:
+        elif 'mo' in ll or 'test' in ll:
             orb = 'mo'
         else:
             logging.error('ParameterError: unidentified orbit - aborting')
@@ -352,7 +367,10 @@ def process_labels(labels):
         inPars['eccentricity'].append(eccentricity)
 
         # Size
-        if 'small' in ll:
+        if 'test' in ll:
+            lgEdot_bins = 2
+            lgSigma_bins = 2
+        elif 'small' in ll:
             lgEdot_bins = 20
             lgSigma_bins = 40
         else:
@@ -370,12 +388,19 @@ def process_labels(labels):
             AlphaSigma = 1.0
         inPars['AlphaSigma'].append(AlphaSigma)
 
+        # NoAbs
+        if 'no_abs' in ll or 'test' in ll:
+            NoAbs = True
+        else:
+            NoAbs = False
+        inPars['NoAbs'].append(NoAbs)
+
     return inPars
 
 
 if __name__ == '__main__':
 
-    labels = sys.argv[1:] if len(sys.argv) > 1 else ['ca_small']
+    labels = sys.argv[1:] if len(sys.argv) > 1 else ['test']
     logging.info('Labels {}'.format(labels))
 
     lgEdot_min = 33
@@ -447,5 +472,6 @@ if __name__ == '__main__':
             Vw=1500,
             AlphaSigma=inPars['AlphaSigma'][iPar],
             Mdot=inPars['Mdot'][iPar],
-            Alpha=alphas
+            Alpha=alphas,
+            do_abs=(not inPars['NoAbs'][iPar])
         )
