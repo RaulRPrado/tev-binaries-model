@@ -52,7 +52,7 @@ if __name__ == '__main__':
             sf.plot_fit_unc(nocor=True, color='k', linestyle='None', alpha=0.2)
 
             ylim = ax.get_ylim()
-            ax.set_ylim(2.5e-13, 40e-13)
+            ax.set_ylim(2.5e-13, 6e-12)
             ax.set_xlim(2.8, 35)
 
             myTicks = [3, 10, 30]
@@ -62,8 +62,30 @@ if __name__ == '__main__':
             ax.set_yticks([3e-13, 1e-12])
             ax.set_yticklabels([r'$3\;10^{-13}$', r'$10^{-12}$'])
 
-            print('Flux = {}+/-{}'.format(sf.flux, sf.fluxErr))
-            print('Slope = {:.3f}+/-{:.3f}'.format(sf.gamma, sf.gammaErr))
+            flux_box = sf.flux / 1e-12
+            flux_err_box = sf.fluxErr / 1e-12
+
+            flux_text = (
+                r'$F_\mathrm{3-30 keV}$ = ' + '({:.2f}'.format(flux_box) + r'$\pm$'
+                + '{:.2f}'.format(flux_err_box) + r') $10^{12}$ erg s$^{-1}$'
+            )
+            slope_text = (
+                r'$\Gamma$ = ' + '{:.2f}'.format(sf.gamma) + r'$\pm$'
+                + '{:.2f}'.format(sf.gammaErr)
+            )
+
+            ax.text(
+                0.07,
+                0.90,
+                flux_text,
+                transform=ax.transAxes
+            )
+            ax.text(
+                0.07,
+                0.82,
+                slope_text,
+                transform=ax.transAxes
+            )
 
             plt.savefig(
                 'figures/DataNuStar_' + str(iper) + '_' + label + '.png',
@@ -94,13 +116,36 @@ if __name__ == '__main__':
             if len(vtsEnergy) > 0:
                 sf = SpectrumFit(energy=vtsEnergy, spec=vtsFlux, specErr=vtsFluxErr)
 
-                sf.fit_power_law(Emin=util.get_emin_fit(vtsEnergy), Emax=util.get_emax_fit(vtsEnergy))
+                # sf.fit_power_law(Emin=util.get_emin_fit(vtsEnergy), Emax=util.get_emax_fit(vtsEnergy))
+                sf.fit_power_law(Emin=0.2e9, Emax=3e9)
                 sf.plot_data(color='k', marker='o', linestyle='None')
                 sf.plot_fit(color='k', linestyle='-', linewidth=1.5)
                 sf.plot_fit_unc(nocor=True, color='k', linestyle='None', alpha=0.2)
 
-                print('Flux = {}+/-{}'.format(sf.flux, sf.fluxErr))
-                print('Slope = {:.3f}+/-{:.3f}'.format(sf.gamma, sf.gammaErr))
+                flux_box = sf.flux / 1e-12
+                flux_err_box = sf.fluxErr / 1e-12
+
+                flux_text = (
+                    r'$F_\mathrm{0.2-3 TeV}$ = ' + '({:.2f}'.format(flux_box) + r'$\pm$'
+                    + '{:.2f}'.format(flux_err_box) + r') $10^{12}$ erg s$^{-1}$'
+                )
+                slope_text = (
+                    r'$\Gamma$ = ' + '{:.2f}'.format(sf.gamma) + r'$\pm$'
+                    + '{:.2f}'.format(sf.gammaErr)
+                )
+
+                ax.text(
+                    0.07,
+                    0.12,
+                    flux_text,
+                    transform=ax.transAxes
+                )
+                ax.text(
+                    0.07,
+                    0.05,
+                    slope_text,
+                    transform=ax.transAxes
+                )
 
                 # Normalization - Gernot's question Jan2020
                 N = sf.get_norm(e=1e9)  # in erg cm-2 s-1
