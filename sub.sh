@@ -5,8 +5,8 @@ do
     for orb in 'ca' 'mo'
     do
         label="${orb}${size}"
-        echo $label
-        qsub -cwd -l s_cpu=48:00:00 -N $label fit_psr.sh $label
+        echo "Submitting label $label"
+        qsub -cwd -l s_cpu=48:00:00 -js 10 -N $label fit_psr.sh $label
 
         # for par in 'm' 'i' 'e' 'o' 'p'
         # do
