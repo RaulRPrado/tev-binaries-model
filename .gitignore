@@ -4,5 +4,5 @@ __pycache__/
 *$py.class
 
 figures/*
-fit_results/*
+fit_results/*.txt
 absorption_table*dat
