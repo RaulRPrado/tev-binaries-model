@@ -5,20 +5,30 @@ import matplotlib.pyplot as plt
 
 import astropy.units as u
 
-from tgblib.parameters import MJD_MEAN, TSTAR, RSTAR, MJD_0
+from tgblib.parameters import MJD_MEAN, TSTAR, RSTAR, MJD_0, MONTH_LABEL
 from tgblib import util
 from tgblib import orbit
 
 if __name__ == '__main__':
 
-    util.set_my_fonts(mode='talk')
+    util.set_my_fonts(mode='text')
     show = True
 
     periods = [0, 1, 2, 3, 4]
 
+    Tper = 315
+
     mjd_pts = [MJD_MEAN[p] for p in periods]
-    labels = ['Nov. 2017', 'Dec. 2017', 'Dec. 2019', 'Jan. 2020', 'Feb. 2020']
-    markers = ['o', '*', '^', '>', 's']
+    markers = ['o', '*', '^', 's', 'D']
+    fillstyle = ['full', 'full', 'none', 'none', 'full']
+
+    extra_label = {
+        0: '',
+        1: '',
+        2: ' (only NuSTAR)',
+        3: ' (only VTS)',
+        4: ''
+    }
 
     label_ca = 'Casares et al., 2012'
     systems_ca = orbit.generate_systems(
@@ -26,7 +36,7 @@ if __name__ == '__main__':
         phase_per=[0.967],
         inclination=[69.5 * util.degToRad, 59 * util.degToRad, 80 * util.degToRad],
         omega=[129 * util.degToRad],
-        period=[315],
+        period=[Tper],
         mjd_0=[MJD_0],
         temp_star=[TSTAR],
         rad_star=[RSTAR],
@@ -42,7 +52,7 @@ if __name__ == '__main__':
         phase_per=[0.663],
         inclination=[37 * util.degToRad, 32 * util.degToRad, 42 * util.degToRad],
         omega=[271 * util.degToRad],
-        period=[315],
+        period=[Tper],
         mjd_0=[MJD_0],
         temp_star=[TSTAR],
         rad_star=[RSTAR],
@@ -94,8 +104,9 @@ if __name__ == '__main__':
             c='k',
             linestyle='None',
             markersize=12,
+            fillstyle=fillstyle[iper],
             marker=markers[iper],
-            label=labels[iper]
+            label=MONTH_LABEL[iper] + extra_label[iper]
         )
 
     disk_ca = plt.Circle(
@@ -157,7 +168,8 @@ if __name__ == '__main__':
             linestyle='None',
             markersize=12,
             marker=markers[iper],
-            label=labels[iper]
+            fillstyle=fillstyle[iper],
+            label=MONTH_LABEL[iper] + extra_label[iper]
         )
 
     disk_mo = plt.Circle(
@@ -221,8 +233,9 @@ if __name__ == '__main__':
             c='k',
             linestyle='None',
             markersize=12,
+            fillstyle=fillstyle[iper],
             marker=markers[iper],
-            label=labels[iper]
+            label=MONTH_LABEL[iper] + extra_label[iper]
         )
 
         ax.plot(
@@ -231,6 +244,7 @@ if __name__ == '__main__':
             c='k',
             linestyle='None',
             markersize=12,
+            fillstyle=fillstyle[iper],
             marker=markers[iper]
         )
 
@@ -297,8 +311,9 @@ if __name__ == '__main__':
             c='k',
             linestyle='None',
             markersize=12,
+            fillstyle=fillstyle[iper],
             marker=markers[iper],
-            label=labels[iper]
+            label=MONTH_LABEL[iper] + extra_label[iper]
         )
 
         ax.plot(
@@ -308,7 +323,8 @@ if __name__ == '__main__':
             linestyle='None',
             markersize=12,
             marker=markers[iper],
-            label=labels[iper]
+            fillstyle=fillstyle[iper],
+            label=MONTH_LABEL[iper] + extra_label[iper]
         )
 
     # handles, labels = ax.get_legend_handles_labels()
@@ -367,7 +383,8 @@ if __name__ == '__main__':
             linestyle='None',
             markersize=12,
             marker=markers[iper],
-            label=labels[iper]
+            fillstyle=fillstyle[iper],
+            label=MONTH_LABEL[iper] + extra_label[iper]
         )
         ax.plot(
             ph_mo[iper],
@@ -376,7 +393,8 @@ if __name__ == '__main__':
             linestyle='None',
             markersize=12,
             marker=markers[iper],
-            label=labels[iper]
+            fillstyle=fillstyle[iper],
+            label=MONTH_LABEL[iper] + extra_label[iper]
         )
 
     handles, labels = ax.get_legend_handles_labels()
