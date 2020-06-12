@@ -33,16 +33,45 @@ def get_data(period, onlyNuSTAR=False, onlyVTS=False):
         energy = [e for e in data['energy'] if e < 1e6]
         flux = [f for (f, e) in zip(data['flux'], data['energy']) if e < 1e6]
         flux_err = [f for (f, e) in zip(data['flux_err'], data['energy']) if e < 1e6]
-        return energy, flux, flux_err
-
-    if onlyVTS:
+    elif onlyVTS:
         logging.debug('Processing onlyVTS data')
         energy = [e for e in data['energy'] if e > 1e3]
         flux = [f for (f, e) in zip(data['flux'], data['energy']) if e > 1e3]
         flux_err = [f for (f, e) in zip(data['flux_err'], data['energy']) if e > 1e3]
-        return energy, flux, flux_err
+    else:
+        logging.debug('Processing all data')
+        energy = list(data['energy'])
+        flux = list(data['flux'])
+        flux_err = list(data['flux_err'])
 
-    return list(data['energy']), list(data['flux']), list(data['flux_err'])
+    # Removing ULs
+    energy_out = [en for (en, er) in zip(energy, flux_err) if er > 0]
+    flux_out = [fl for (fl, er) in zip(flux, flux_err) if er > 0]
+    flux_err_out = [er for er in flux_err if er > 0]
+
+    return energy_out, flux_out, flux_err_out
+
+
+def get_data_ul(period):
+    '''
+    Get ul data for a given period.
+    Energies in keV and fluxes in erg/cm2/s
+
+    Returns
+    -------
+    energy, ul (as lists)
+    '''
+    if period not in [0, 1, 2, 3, 4]:
+        logging.error('Invalid period')
+        return None, None, None
+
+    data = ascii.read('data/HESS_J0632_' + str(period) + '.csv', format='basic')
+
+    logging.debug('Processing UL data')
+    energy = [en for (er, en) in zip(data['flux_err'], data['energy']) if er == 0]
+    flux_ul = [ul for (ul, er) in zip(data['flux'], data['flux_err']) if er == 0]
+
+    return energy, flux_ul
 
 
 def get_fermi_spec():

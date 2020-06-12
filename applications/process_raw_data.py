@@ -107,8 +107,8 @@ if __name__ == '__main__':
     convEnergyVTS = u.TeV.to(u.keV)
     convFluxVTS = u.TeV.to(u.erg)
     for d in dataVTS:
-        if d['dnde_error'] == 0.:
-            continue
+        # if d['dnde_error'] == 0.:
+        #     continue
         outData['energy'].append(d['energy'] * convEnergyVTS)
         outData['flux'].append(d['dnde'] * (d['energy']**2) * convFluxVTS)
         outData['flux_err'].append(d['dnde_error'] * (d['energy']**2) * convFluxVTS)
@@ -129,8 +129,8 @@ if __name__ == '__main__':
     convEnergyVTS = u.TeV.to(u.keV)
     convFluxVTS = u.TeV.to(u.erg)
     for d in dataVTS:
-        if d['dnde_error'] == 0.:
-            continue
+        # if d['dnde_error'] == 0.:
+        #    continue
         outData['energy'].append(d['energy'] * convEnergyVTS)
         outData['flux'].append(d['dnde'] * (d['energy']**2) * convFluxVTS)
         outData['flux_err'].append(d['dnde_error'] * (d['energy']**2) * convFluxVTS)
@@ -160,8 +160,8 @@ if __name__ == '__main__':
     convEnergyVTS = u.TeV.to(u.keV)
     convFluxVTS = u.TeV.to(u.erg)
     for d in dataVTS:
-        if d['dnde_error'] == 0.:
-            continue
+        # if d['dnde_error'] == 0.:
+        #     continue
         outData['energy'].append(d['energy'] * convEnergyVTS)
         outData['flux'].append(d['dnde'] * (d['energy']**2) * convFluxVTS)
         outData['flux_err'].append(d['dnde_error'] * (d['energy']**2) * convFluxVTS)

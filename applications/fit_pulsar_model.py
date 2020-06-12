@@ -221,7 +221,7 @@ def do_fit(
         def least_square(n0, n1, n2, n3, n4):
             chisq = 0
             for ii, nn in enumerate([n0, n1, n2, n3, n4]):
-                if not fit_n[ii]:
+                if fix_n[ii]:
                     continue
                 chisq += sum(util.vecChiSq(
                     [(nn / 1e20) * m.value for m in model[ii]],
@@ -260,6 +260,34 @@ def do_fit(
 
         logging.info('Fit')
         logging.info('ChiSq/ndf = {}'.format(chisq_min / ndf))
+        logging.info('ChiSq - ndf = {}'.format(chisq_min - ndf))
+
+        # # plot testing
+        # for ii, nn in enumerate(n_fit):
+        #     if fix_n[ii]:
+        #         continue
+        #     plt.figure(figsize=(8, 6), tight_layout=True)
+        #     ax = plt.gca()
+        #     ax.set_xscale('log')
+        #     ax.set_yscale('log')
+        #     ax.set_title(ii)
+
+        #     ax.errorbar(
+        #         data_en[ii],
+        #         data_fl[ii],
+        #         yerr=data_fl_er[ii],
+        #         marker='o',
+        #         linestyle='none'
+        #     )
+
+        #     ax.plot(
+        #         data_en[ii],
+        #         [(nn / 1e20) * m.value for m in model[ii]],
+        #         marker='o',
+        #         linestyle='none'
+        #     )
+        #     plt.show()
+
     #     print('p-value', p_value)
 
     #     if do_abs:
@@ -269,7 +297,7 @@ def do_fit(
     #         TauPrint0 = [0, 0]
     #         TauPrint1 = [0, 0]
 
-        if chisq_min - ndf < 25:
+        if chisq_min - ndf < 1e3:
             OutFit.write(str(chisq_min) + ' ')
             OutFit.write(str(ndf) + ' ')
             for ii in range(pars.MAX_PERIOD):
@@ -368,8 +396,8 @@ def process_labels(labels):
 
         # Size
         if 'test' in ll:
-            lgEdot_bins = 2
-            lgSigma_bins = 2
+            lgEdot_bins = 15
+            lgSigma_bins = 20
         elif 'small' in ll:
             lgEdot_bins = 20
             lgSigma_bins = 40
@@ -390,7 +418,7 @@ def process_labels(labels):
 
         # NoAbs
         if 'no_abs' in ll or 'test' in ll:
-            NoAbs = True
+            NoAbs = False
         else:
             NoAbs = False
         inPars['NoAbs'].append(NoAbs)
@@ -408,7 +436,12 @@ if __name__ == '__main__':
     lgSigma_min = math.log10(1e-3)
     lgSigma_max = math.log10(3e-1)
 
-    periods = [0, 1]
+    # lgEdot_min = 36
+    # lgEdot_max = 38
+    # lgSigma_min = math.log10(3e-3)
+    # lgSigma_max = math.log10(3e-2)
+
+    periods = [0, 1, 2, 4]
     mjd_pts = [pars.MJD_MEAN[p] for p in periods]
     alphas = [pars.ELEC_SPEC_INDEX[p] for p in periods]
 

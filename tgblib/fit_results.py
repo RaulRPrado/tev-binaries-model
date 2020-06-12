@@ -1,20 +1,13 @@
 #!/usr/bin/python3
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-import itertools
+import logging
 from numpy.linalg import norm
-from matplotlib.patches import Polygon
-from matplotlib.collections import PatchCollection
-from scipy.interpolate import make_interp_spline, BSpline
-from scipy import interpolate
 
-import naima
 import astropy.units as u
 import astropy.constants as const
-from iminuit import Minuit
 from naima.models import (
     ExponentialCutoffPowerLaw,
     ExponentialCutoffBrokenPowerLaw,
@@ -29,24 +22,12 @@ from tgblib import absorption
 
 
 class FitResult(object):
-    def __init__(self, label='', color='k', SigmaMax=None, EdotMin=None):
+    def __init__(self, n_periods, label='', color='k', SigmaMax=None, EdotMin=None):
         self.color = color
         self.SigmaMax = SigmaMax if SigmaMax is not None else 1e10
         self.EdotMin = EdotMin if EdotMin is not None else 1e10
-        data = np.loadtxt('files_fit/fit_results_' + label + '.txt', unpack=True)
-        self.chiSq = data[0]
-        self.lgNorm0 = data[2]
-        self.lgNorm1 = data[3]
-        self.lgEdot = data[4]
-        self.lgSigma = data[5]
-        self.distPulsar0 = data[7]
-        self.bField0 = data[8]
-        self.distPulsar1 = data[10]
-        self.bField1 = data[11]
-
-        self.ndf = data[1][0]
-        self.dist0 = data[6][0]
-        self.dist1 = data[9][0]
+        self.nPeriods = n_periods
+        self.loadData(label)
 
         chisq_sel = list()
         for (c, s) in zip(self.chiSq, self.lgSigma):
@@ -55,154 +36,266 @@ class FitResult(object):
         self.chiSqMin = self.chiSq[idxMin]
         self.lgEdotMin = self.lgEdot[idxMin]
         self.lgSigmaMin = self.lgSigma[idxMin]
-        self.b0Min = self.bField0[idxMin]
-        self.distPulsar0Min = self.distPulsar0[idxMin]
-        self.b1Min = self.bField1[idxMin]
-        self.distPulsar1Min = self.distPulsar1[idxMin]
-        self.norm0Min = 10**self.lgNorm0[idxMin]
-        self.norm1Min = 10**self.lgNorm1[idxMin]
 
-        print('ChiSqMin/ndf=', round(self.chiSqMin, 2), '/', self.ndf, '=',
-              round(self.chiSqMin/self.ndf, 3))
+        self.bMin = list()
+        self.distPulsarMin = list()
+        self.normMin = list()
+
+        for ip in range(self.nPeriods):
+            self.bMin.append(self.bField[ip][idxMin])
+            self.distPulsarMin.append(self.distPulsar[ip][idxMin])
+            self.normMin.append(10**self.lgNorm[ip][idxMin])
+
+        print(
+            'ChiSqMin/ndf=',
+            round(self.chiSqMin, 2),
+            '/',
+            self.ndf,
+            '=',
+            round(self.chiSqMin/self.ndf, 3)
+        )
 
         self.sigma_1s, self.chiSq_1s = list(), list()
         self.lgEdot_1s, self.lgSigma_1s = list(), list()
-        self.distPulsar0_1s, self.distPulsar1_1s = list(), list()
-        self.b0_1s, self.b1_1s = list(), list()
-        self.lgNorm0_1s, self.lgNorm1_1s = list(), list()
+        self.distPulsar_1s, self.b_1s, self.lgNorm_1s = list(), list(), list()
+        for ip in range(self.nPeriods):
+            self.distPulsar_1s.append(list())
+            self.b_1s.append(list())
+            self.lgNorm_1s.append(list())
 
         self.sigma_2s, self.chiSq_2s = list(), list()
         self.lgEdot_2s, self.lgSigma_2s = list(), list()
 
-        for i in range(len(self.chiSq)):
-            sig = math.sqrt(self.chiSq[i] - self.chiSqMin) if self.chiSq[i] - self.chiSqMin > 0 else 1e20
-            no_disk = (self.dist0 - self.distPulsar0[i] > 1.12 and
-                       self.dist1 - self.distPulsar1[i] > 1.12)
-            if (sig < math.sqrt(6.18) and
-                    self.lgEdot[i] > math.log10(self.EdotMin) and
-                    self.lgSigma[i] < math.log10(self.SigmaMax)):
-
+        for ii in range(len(self.chiSq)):
+            sig = (
+                math.sqrt(self.chiSq[ii] - self.chiSqMin)
+                if self.chiSq[ii] - self.chiSqMin > 0 else 1e20
+            )
+            no_disk = (
+                self.dist[0] - self.distPulsar[0][ii] > 1.12
+                and self.dist[1] - self.distPulsar[1][ii] > 1.12
+            )
+            if (
+                sig < math.sqrt(6.18)
+                and self.lgEdot[ii] > math.log10(self.EdotMin)
+                and self.lgSigma[ii] < math.log10(self.SigmaMax)
+            ):
                 self.sigma_2s.append(sig)
-                self.chiSq_2s.append(self.chiSq[i])
-                self.lgEdot_2s.append(self.lgEdot[i])
-                self.lgSigma_2s.append(self.lgSigma[i])
+                self.chiSq_2s.append(self.chiSq[ii])
+                self.lgEdot_2s.append(self.lgEdot[ii])
+                self.lgSigma_2s.append(self.lgSigma[ii])
                 if sig < math.sqrt(2.3):
                     self.sigma_1s.append(sig)
-                    self.chiSq_1s.append(self.chiSq[i])
-                    self.lgEdot_1s.append(self.lgEdot[i])
-                    self.lgSigma_1s.append(self.lgSigma[i])
-                    self.distPulsar0_1s.append(self.distPulsar0[i])
-                    self.distPulsar1_1s.append(self.distPulsar1[i])
-                    self.b0_1s.append(self.bField0[i])
-                    self.b1_1s.append(self.bField1[i])
-                    self.lgNorm0_1s.append(self.lgNorm0[i])
-                    self.lgNorm1_1s.append(self.lgNorm1[i])
+                    self.chiSq_1s.append(self.chiSq[ii])
+                    self.lgEdot_1s.append(self.lgEdot[ii])
+                    self.lgSigma_1s.append(self.lgSigma[ii])
+                    for ip in range(self.nPeriods):
+                        self.distPulsar_1s[ip].append(self.distPulsar[ip][ii])
+                        self.b_1s[ip].append(self.bField[ip][ii])
+                        self.lgNorm_1s[ip].append(self.lgNorm[ip][ii])
 
         # Determining the line along Edot
         self.lgEdotLine, self.lgSigmaLine = list(), list()
         self.lgSigmaInf, self.lgSigmaSup = list(), list()
-        self.distPulsar0Line, self.b0Line = list(), list()
-        self.distPulsar1Line, self.b1Line = list(), list()
-        self.lgNorm0Line, self.lgNorm1Line = list(), list()
+        self.distPulsarLine, self.bLine, self.lgNormLine = list(), list(), list()
+        for ip in range(self.nPeriods):
+            self.distPulsarLine.append(list())
+            self.bLine.append(list())
+            self.lgNormLine.append(list())
         lgEdotSet = list(set(self.lgEdot_1s))
-        for i in range(len(lgEdotSet)):
-            colSigma = [s for (s, e) in zip(self.lgSigma_1s, self.lgEdot_1s) if e == lgEdotSet[i]]
-            colChiSq = [c for (c, e) in zip(self.chiSq_1s, self.lgEdot_1s) if e == lgEdotSet[i]]
-            colDist0 = [d for (d, e) in zip(self.distPulsar0_1s, self.lgEdot_1s) if e == lgEdotSet[i]]
-            colLgNorm0 = [n for (n, e) in zip(self.lgNorm0_1s, self.lgEdot_1s) if e == lgEdotSet[i]]
-            colB0 = [b for (b, e) in zip(self.b0_1s, self.lgEdot_1s) if e == lgEdotSet[i]]
-            colDist1 = [d for (d, e) in zip(self.distPulsar1_1s, self.lgEdot_1s) if e == lgEdotSet[i]]
-            colLgNorm1 = [n for (n, e) in zip(self.lgNorm1_1s, self.lgEdot_1s) if e == lgEdotSet[i]]
-            colB1 = [b for (b, e) in zip(self.b1_1s, self.lgEdot_1s) if e == lgEdotSet[i]]
+        for ii in range(len(lgEdotSet)):
+            colSigma = [s for (s, e) in zip(self.lgSigma_1s, self.lgEdot_1s) if e == lgEdotSet[ii]]
+            colChiSq = [c for (c, e) in zip(self.chiSq_1s, self.lgEdot_1s) if e == lgEdotSet[ii]]
             idxMin = np.argmin(colChiSq)
-            self.lgEdotLine.append(lgEdotSet[i])
+            self.lgEdotLine.append(lgEdotSet[ii])
             self.lgSigmaLine.append(colSigma[idxMin])
             self.lgSigmaInf.append(min(colSigma))
             self.lgSigmaSup.append(max(colSigma))
-            self.distPulsar0Line.append(colDist0[idxMin] / self.dist0)
-            self.b0Line.append(colB0[idxMin])
-            self.lgNorm0Line.append(colLgNorm0[idxMin])
-            self.distPulsar1Line.append(colDist1[idxMin] / self.dist1)
-            self.b1Line.append(colB1[idxMin])
-            self.lgNorm1Line.append(colLgNorm1[idxMin])
+
+            for ip in range(self.nPeriods):
+
+                colDist = [d for (d, e) in zip(self.distPulsar_1s[ip], self.lgEdot_1s) if e == lgEdotSet[ii]]
+                colLgNorm = [n for (n, e) in zip(self.lgNorm_1s[ip], self.lgEdot_1s) if e == lgEdotSet[ii]]
+                colB = [b for (b, e) in zip(self.b_1s[ip], self.lgEdot_1s) if e == lgEdotSet[ii]]
+
+                self.distPulsarLine.append(colDist[idxMin] / self.dist[0])
+                self.bLine.append(colB[idxMin])
+                self.lgNormLine.append(colLgNorm[idxMin])
 
         self.lgEdotLine_2s, self.lgSigmaLine_2s = list(), list()
         self.lgSigmaInf_2s, self.lgSigmaSup_2s = list(), list()
         lgEdotSet = list(set(self.lgEdot_2s))
-        for i in range(len(lgEdotSet)):
-            colSigma = [s for (s, e) in zip(self.lgSigma_2s, self.lgEdot_2s) if e == lgEdotSet[i]]
-            colChiSq = [c for (c, e) in zip(self.chiSq_2s, self.lgEdot_2s) if e == lgEdotSet[i]]
+        for ii in range(len(lgEdotSet)):
+            colSigma = [s for (s, e) in zip(self.lgSigma_2s, self.lgEdot_2s) if e == lgEdotSet[ii]]
+            colChiSq = [c for (c, e) in zip(self.chiSq_2s, self.lgEdot_2s) if e == lgEdotSet[ii]]
             idxMin = np.argmin(colChiSq)
-            self.lgEdotLine_2s.append(lgEdotSet[i])
+            self.lgEdotLine_2s.append(lgEdotSet[ii])
             self.lgSigmaLine_2s.append(colSigma[idxMin])
             self.lgSigmaInf_2s.append(min(colSigma))
             self.lgSigmaSup_2s.append(max(colSigma))
 
-    def plot_solution(self, band=True, line=True, star=True, ms=35, with_lines=False, no_2s=True,
-                      ls='-', line_ls='-', label=None):
+    def loadData(self, label):
+        fileName = 'fit_results/fit_results_' + label + '.txt'
+        logging.info('Loading data {}'.format(fileName))
+        data = np.loadtxt(fileName, unpack=True)
+        self.chiSq = data[0]
+        self.ndf = data[1][0]
+        self.lgNorm = list()
+        for ip in range(self.nPeriods):
+            self.lgNorm.append(data[2 + ip])
+        self.lgEdot = data[2 + self.nPeriods]
+        self.lgSigma = data[3 + self.nPeriods]
+        self.dist = list()
+        self.distPulsar = list()
+        self.bField = list()
+        for ip in range(self.nPeriods):
+            self.dist.append(data[4 + self.nPeriods + 3*ip][0])
+            self.distPulsar.append(data[5 + self.nPeriods + 3*ip])
+            self.bField.append(data[6 + self.nPeriods + 3*ip])
+
+    def plot_solution(
+        self,
+        band=True,
+        line=True,
+        star=True,
+        ms=35,
+        with_lines=False,
+        no_2s=True,
+        ls='-',
+        line_ls='-',
+        label=None
+    ):
         ax = plt.gca()
 
         if band:
-            lgEdotBand_2s, lgSigmaSupBand_2s, lgSigmaInfBand_2s = zip(*sorted(zip(self.lgEdotLine_2s,
-                                                                                  self.lgSigmaSup_2s,
-                                                                                  self.lgSigmaInf_2s)))
-            lgEdotBand_1s, lgSigmaSupBand_1s, lgSigmaInfBand_1s = zip(*sorted(zip(self.lgEdotLine,
-                                                                                  self.lgSigmaSup,
-                                                                                  self.lgSigmaInf)))
+            lgEdotBand_2s, lgSigmaSupBand_2s, lgSigmaInfBand_2s = zip(*sorted(zip(
+                self.lgEdotLine_2s,
+                self.lgSigmaSup_2s,
+                self.lgSigmaInf_2s
+            )))
+            lgEdotBand_1s, lgSigmaSupBand_1s, lgSigmaInfBand_1s = zip(*sorted(zip(
+                self.lgEdotLine,
+                self.lgSigmaSup,
+                self.lgSigmaInf
+            )))
+
             if with_lines:
-                plt.plot([10**l for l in lgEdotBand_1s], [10**l for l in lgSigmaInfBand_1s],
-                         marker='None', ls=ls, linewidth=3,
-                         c=self.color, alpha=0.7, label=label)
-                plt.plot([10**l for l in lgEdotBand_1s], [10**l for l in lgSigmaSupBand_1s],
-                         marker='None', ls=ls, linewidth=3,
-                         c=self.color, alpha=0.7)
+                plt.plot(
+                    [10**l for l in lgEdotBand_1s],
+                    [10**l for l in lgSigmaInfBand_1s],
+                    marker='None',
+                    ls=ls,
+                    linewidth=3,
+                    c=self.color,
+                    alpha=0.7,
+                    label=label
+                )
+                plt.plot(
+                    [10**l for l in lgEdotBand_1s],
+                    [10**l for l in lgSigmaSupBand_1s],
+                    marker='None',
+                    ls=ls,
+                    linewidth=3,
+                    c=self.color,
+                    alpha=0.7
+                )
                 # Connecting the borders
-                plt.plot([10**lgEdotBand_1s[-1], 10**lgEdotBand_1s[-1]],
-                         [10**lgSigmaInfBand_1s[-1], 10**lgSigmaSupBand_1s[-1]],
-                         marker='None', ls=ls, linewidth=3,
-                         c=self.color, alpha=0.7)
-                plt.plot([10**lgEdotBand_1s[0], 10**lgEdotBand_1s[0]],
-                         [10**lgSigmaInfBand_1s[0], 10**lgSigmaSupBand_1s[0]],
-                         marker='None', ls=ls, linewidth=3,
-                         c=self.color, alpha=0.7)
+                plt.plot(
+                    [10**lgEdotBand_1s[-1], 10**lgEdotBand_1s[-1]],
+                    [10**lgSigmaInfBand_1s[-1], 10**lgSigmaSupBand_1s[-1]],
+                    marker='None',
+                    ls=ls,
+                    linewidth=3,
+                    c=self.color,
+                    alpha=0.7
+                )
+                plt.plot(
+                    [10**lgEdotBand_1s[0], 10**lgEdotBand_1s[0]],
+                    [10**lgSigmaInfBand_1s[0], 10**lgSigmaSupBand_1s[0]],
+                    marker='None',
+                    ls=ls,
+                    linewidth=3,
+                    c=self.color,
+                    alpha=0.7
+                )
                 if not no_2s:
-                    plt.plot([10**l for l in lgEdotBand_2s], [10**l for l in lgSigmaInfBand_2s],
-                             marker='None', ls=ls, linewidth=3,
-                             c=self.color, alpha=0.3)
-                    plt.plot([10**l for l in lgEdotBand_2s], [10**l for l in lgSigmaSupBand_2s],
-                             marker='None', ls=ls, linewidth=3,
-                             c=self.color, alpha=0.3)
+                    plt.plot(
+                        [10**l for l in lgEdotBand_2s],
+                        [10**l for l in lgSigmaInfBand_2s],
+                        marker='None',
+                        ls=ls,
+                        linewidth=3,
+                        c=self.color,
+                        alpha=0.3
+                    )
+                    plt.plot(
+                        [10**l for l in lgEdotBand_2s],
+                        [10**l for l in lgSigmaSupBand_2s],
+                        marker='None',
+                        ls=ls,
+                        linewidth=3,
+                        c=self.color,
+                        alpha=0.3
+                    )
                     # Connecting the borders
-                    plt.plot([10**lgEdotBand_2s[-1], 10**lgEdotBand_2s[-1]],
-                             [10**lgSigmaInfBand_2s[-1], 10**lgSigmaSupBand_2s[-1]],
-                             marker='None', ls=ls, linewidth=3,
-                             c=self.color, alpha=0.3)
-                    plt.plot([10**lgEdotBand_2s[0], 10**lgEdotBand_2s[0]],
-                             [10**lgSigmaInfBand_2s[0], 10**lgSigmaSupBand_2s[0]],
-                             marker='None', ls=ls, linewidth=3,
-                             c=self.color, alpha=0.3)
+                    plt.plot(
+                        [10**lgEdotBand_2s[-1], 10**lgEdotBand_2s[-1]],
+                        [10**lgSigmaInfBand_2s[-1], 10**lgSigmaSupBand_2s[-1]],
+                        marker='None',
+                        ls=ls,
+                        linewidth=3,
+                        c=self.color,
+                        alpha=0.3
+                    )
+                    plt.plot(
+                        [10**lgEdotBand_2s[0], 10**lgEdotBand_2s[0]],
+                        [10**lgSigmaInfBand_2s[0], 10**lgSigmaSupBand_2s[0]],
+                        marker='None',
+                        ls=ls,
+                        linewidth=3,
+                        c=self.color,
+                        alpha=0.3
+                    )
             else:
-                plt.fill_between([10**l for l in lgEdotBand_1s],
-                                 [10**l for l in lgSigmaInfBand_1s],
-                                 [10**l for l in lgSigmaSupBand_1s],
-                                 color=self.color, alpha=0.4)
+                plt.fill_between(
+                    [10**l for l in lgEdotBand_1s],
+                    [10**l for l in lgSigmaInfBand_1s],
+                    [10**l for l in lgSigmaSupBand_1s],
+                    color=self.color,
+                    alpha=0.4
+                )
                 if not no_2s:
-                    plt.fill_between([10**l for l in lgEdotBand_2s],
-                                     [10**l for l in lgSigmaInfBand_2s],
-                                     [10**l for l in lgSigmaSupBand_2s],
-                                     color=self.color, alpha=0.2)
+                    plt.fill_between(
+                        [10**l for l in lgEdotBand_2s],
+                        [10**l for l in lgSigmaInfBand_2s],
+                        [10**l for l in lgSigmaSupBand_2s],
+                        color=self.color,
+                        alpha=0.2
+                    )
             if line:
                 lgEdotSorted, lgSigmaSorted = zip(*sorted(zip(self.lgEdotLine, self.lgSigmaLine)))
-                plt.plot([10**l for l in lgEdotSorted], [10**l for l in lgSigmaSorted],
-                         marker='None', ls=line_ls, c=self.color)
+                plt.plot(
+                    [10**l for l in lgEdotSorted],
+                    [10**l for l in lgSigmaSorted],
+                    marker='None',
+                    ls=line_ls,
+                    c=self.color
+                )
         else:  # not band
-            ax.scatter([10**l for l in self.lgEdot_1s],
-                       [10**l for l in self.lgSigma_1s],
-                       c=self.sigma_1s, label=label)
+            ax.scatter(
+                [10**l for l in self.lgEdot_1s],
+                [10**l for l in self.lgSigma_1s],
+                c=self.sigma_1s, label=label
+            )
 
         if star:
-            plt.plot([10**self.lgEdotMin], [10**self.lgSigmaMin],
-                     marker='*', c=self.color, markersize=15)
+            plt.plot(
+                [10**self.lgEdotMin],
+                [10**self.lgSigmaMin],
+                marker='*',
+                c=self.color,
+                markersize=15
+            )
 
     def plot_star(self, Edot=1e36, marker='*', ms=15):
         idx = np.argmin(np.array([math.fabs(l - math.log10(Edot)) for l in self.lgEdotLine]))
@@ -234,16 +327,17 @@ class FitResult(object):
                      marker='None', ls=ls, c=self.color, label=label, linewidth=lw)
 
     def plot_crab_sigma(self, alpha=1, ls='-'):
-            def comp_sig_crab(rs, alpha):
-                return 3e-3 * pow(3e17 * u.cm.to(u.au) / rs, alpha)
 
-            sig_crab = [comp_sig_crab(rs * self.dist0, alpha) for rs in self.distPulsar0Line]
+        def comp_sig_crab(rs, alpha):
+            return 3e-3 * pow(3e17 * u.cm.to(u.au) / rs, alpha)
 
-            lgEdotSorted, sigmaSorted = zip(*sorted(zip(self.lgEdotLine,
-                                                        sig_crab)))
+        sig_crab = [comp_sig_crab(rs * self.dist0, alpha) for rs in self.distPulsar0Line]
 
-            plt.plot([10**l for l in lgEdotSorted], sigmaSorted,
-                     marker='None', ls=ls, c=self.color)
+        lgEdotSorted, sigmaSorted = zip(*sorted(zip(self.lgEdotLine,
+                                                    sig_crab)))
+
+        plt.plot([10**l for l in lgEdotSorted], sigmaSorted,
+                 marker='None', ls=ls, c=self.color)
 
     def plot_B(self, line=True, star=True, only_0=True, ls='-', label='None'):
         if line:
@@ -373,11 +467,24 @@ class FitResult(object):
                    [10**l0/10**l1 for (l0, l1) in zip(self.lgNorm0_1s, self.lgNorm1_1s)],
                    color=self.color, marker='o', s=3)
 
-    def plot_sed(self, period=0, best_solution=True, Edot=1e36,
-                 theta_ic=90, dist=2, pos=np.array([1, 1, 1]),
-                 ls='-', label='None',
-                 Tstar=30e3, Rstar=7.8, Mdot=3.16e-9, Vw=1500,
-                 emin=0.1, ecut=50, fast=False):
+    def plot_sed(
+        self,
+        period=0,
+        best_solution=True,
+        Edot=1e36,
+        theta_ic=90,
+        dist=2,
+        pos=np.array([1, 1, 1]),
+        ls='-',
+        label='None',
+        Tstar=30e3,
+        Rstar=7.8,
+        Mdot=3.16e-9,
+        Vw=1500,
+        emin=0.1,
+        ecut=50,
+        fast=False
+    ):
         Alpha = np.array([2.58, 2.16])
 
         Eref = 1 * u.TeV
