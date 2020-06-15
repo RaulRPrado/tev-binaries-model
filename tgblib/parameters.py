@@ -17,6 +17,7 @@ MONTH_LABEL = {
     4: 'Feb. 2020'
 }
 
+TPER = 315
 
 MJD_0 = 54857.5
 

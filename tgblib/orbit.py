@@ -648,6 +648,23 @@ def getCasaresSystem():
     )
 
 
+def getMoritaniSystem():
+    return generate_systems(
+        eccentricity=[0.64],
+        phase_per=[0.663],
+        inclination=[63.7 * util.degToRad],
+        omega=[271 * util.degToRad],
+        period=[pars.TPER],
+        mjd_0=[pars.MJD_0],
+        temp_star=[pars.TSTAR],
+        rad_star=[pars.RSTAR],
+        mass_star=[16],
+        mass_compact=[1.4],
+        f_m=[0.0024],
+        x1=[0.120]
+    )
+
+
 if __name__ == '__main__':
 
     # systems_ca = generate_systems(eccentricity=[0.83, 0.75, 0.91],

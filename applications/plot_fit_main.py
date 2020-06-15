@@ -22,7 +22,8 @@ from naima.models import (
 )
 
 import tgblib.pulsar as psr
-import tgblib.fit_result as fr
+import tgblib.fit_results as fr
+import tgblib.parameters as pars
 from tgblib import util
 from tgblib import data
 from tgblib import orbit
@@ -33,19 +34,19 @@ if __name__ == '__main__':
     util.set_my_fonts(mode='talk')
     small_label = ''
     which_orbit = ['ca', 'mo']
-    show = False
+    show = True
     band = True
     fast_sed = True
     do_solution = True
-    do_sed = True
+    do_sed = False
     do_sed_both = False
-    do_mag = True
-    do_density = True
-    do_dist = True
-    do_opt = True
+    do_mag = False
+    do_density = False
+    do_dist = False
+    do_opt = False
     do_ebr = False
-    do_sig = True
-    do_mdot = True
+    do_sig = False
+    do_mdot = False
 
     label_ca = 'Orbit by Casares et al. 2012'
     label_mo = 'Orbit by Moritani et al. 2018'
@@ -57,44 +58,23 @@ if __name__ == '__main__':
 
     ########
     # Orbits
-    systems_ca = orbit.generate_systems(eccentricity=[0.83],
-                                        phase_per=[0.967],
-                                        inclination=[69.5 * util.degToRad,
-                                                     59 * util.degToRad,
-                                                     80 * util.degToRad],
-                                        omega=[129 * util.degToRad],
-                                        period=[315],
-                                        mjd_0=[54857.5],
-                                        temp_star=[30e3],
-                                        rad_star=[7.8],
-                                        mass_star=[16],
-                                        mass_compact=[1.4],
-                                        f_m=[0.01],
-                                        x1=[0.362])
+    systems_ca = orbit.getCasaresSystem()
+    systems_mo = orbit.getMoritaniSystem()
 
-    systems_mo = orbit.generate_systems(eccentricity=[0.64],
-                                        phase_per=[0.663],
-                                        inclination=[37 * util.degToRad,
-                                                     32 * util.degToRad,
-                                                     42 * util.degToRad],
-                                        omega=[271 * util.degToRad],
-                                        period=[315],
-                                        mjd_0=[54857.5],
-                                        temp_star=[30e3],
-                                        rad_star=[7.8],
-                                        mass_star=[16],
-                                        mass_compact=[1.4],
-                                        f_m=[0.0024],
-                                        x1=[0.120])
-    mjd_pts = [58079, 58101]
-    orbits_ca = orbit.SetOfOrbits(phase_step=0.0005,
-                                  color='r',
-                                  systems=systems_ca,
-                                  mjd_pts=mjd_pts)
-    orbits_mo = orbit.SetOfOrbits(phase_step=0.0005,
-                                  color='b',
-                                  systems=systems_mo,
-                                  mjd_pts=mjd_pts)
+    periods = [0, 1, 2, 4]
+    mjd_pts = mjd_pts = [pars.MJD_MEAN[p] for p in periods]
+    orbits_ca = orbit.SetOfOrbits(
+        phase_step=0.0005,
+        color='r',
+        systems=systems_ca,
+        mjd_pts=mjd_pts
+    )
+    orbits_mo = orbit.SetOfOrbits(
+        phase_step=0.0005,
+        color='b',
+        systems=systems_mo,
+        mjd_pts=mjd_pts
+    )
 
     pts_ca = orbits_ca.get_pts()
     pts_mo = orbits_mo.get_pts()
@@ -107,30 +87,20 @@ if __name__ == '__main__':
 
     #############
     # Fit Results
-    fr_ca = fr.FitResult(label='ca' + small_label,
-                         color='r',
-                         SigmaMax=SigmaMax,
-                         EdotMin=EdotMin)
-    fr_ca_m_inf = fr.FitResult(label='ca_m_inf' + small_label,
-                               color='r',
-                               SigmaMax=SigmaMax,
-                               EdotMin=EdotMin)
-    fr_ca_m_sup = fr.FitResult(label='ca_m_sup' + small_label,
-                               color='r',
-                               SigmaMax=SigmaMax,
-                               EdotMin=EdotMin)
-    fr_mo = fr.FitResult(label='mo' + small_label,
-                         color='b',
-                         SigmaMax=SigmaMax,
-                         EdotMin=EdotMin)
-    fr_mo_m_inf = fr.FitResult(label='mo_m_inf' + small_label,
-                               color='b',
-                               SigmaMax=SigmaMax,
-                               EdotMin=EdotMin)
-    fr_mo_m_sup = fr.FitResult(label='mo_m_sup' + small_label,
-                               color='b',
-                               SigmaMax=SigmaMax,
-                               EdotMin=EdotMin)
+    fr_ca = fr.FitResult(
+        n_periods=4,
+        label='ca' + small_label,
+        color='r',
+        SigmaMax=SigmaMax,
+        EdotMin=EdotMin
+    )
+    fr_mo = fr.FitResult(
+        n_periods=4,
+        label='mo' + small_label,
+        color='b',
+        SigmaMax=SigmaMax,
+        EdotMin=EdotMin
+    )
 
     xlim, ylim = None, None
 
@@ -140,30 +110,33 @@ if __name__ == '__main__':
         fig = plt.gcf()
         ax = plt.gca()
         ax.set_ylabel(r'$\sigma_0$')
-        # ax.set_xlabel(r'$\dot{E}$ [erg s$^{-1}$]')
         ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
         ax.set_yscale('log')
         ax.set_xscale('log')
         ax.tick_params(which='minor', length=minorTickSize)
         ax.tick_params(which='major', length=majorTickSize)
 
-        fr_ca.plot_solution(band=band,
-                            line=True,
-                            ms=40,
-                            with_lines=True,
-                            no_2s=False,
-                            ls='-',
-                            line_ls='--',
-                            label=label_ca)
+        fr_ca.plot_solution(
+            band=band,
+            line=True,
+            ms=40,
+            with_lines=True,
+            no_2s=False,
+            ls='-',
+            line_ls='--',
+            label=label_ca
+        )
 
-        fr_mo.plot_solution(band=band,
-                            line=True,
-                            ms=40,
-                            with_lines=True,
-                            no_2s=False,
-                            ls='-',
-                            line_ls=':',
-                            label=label_mo)
+        fr_mo.plot_solution(
+            band=band,
+            line=True,
+            ms=40,
+            with_lines=True,
+            no_2s=False,
+            ls='-',
+            line_ls=':',
+            label=label_mo
+        )
 
         ax.legend(loc='best', frameon=False)
 
@@ -183,15 +156,22 @@ if __name__ == '__main__':
         fig = plt.gcf()
         ax = plt.gca()
         ax.set_ylabel(r'$\sigma_0$')
-        # ax.set_xlabel(r'$\dot{E}$ [erg s$^{-1}$]')
         ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
         ax.set_yscale('log')
         ax.set_xscale('log')
         ax.tick_params(which='minor', length=minorTickSize)
         ax.tick_params(which='major', length=majorTickSize)
 
-        fr_ca.plot_solution(band=band, line=True, ms=40, with_lines=True, no_2s=False,
-                            ls='-', line_ls='--', label=label_ca)
+        fr_ca.plot_solution(
+            band=band,
+            line=True,
+            ms=40,
+            with_lines=True,
+            no_2s=False,
+            ls='-',
+            line_ls='--',
+            label=label_ca
+        )
 
         if xlim is not None and ylim is not None:
             ax.set_xlim(xlim[0], xlim[1])
@@ -210,15 +190,22 @@ if __name__ == '__main__':
         fig = plt.gcf()
         ax = plt.gca()
         ax.set_ylabel(r'$\sigma_0$')
-        # ax.set_xlabel(r'$\dot{E}$ [erg s$^{-1}$]')
         ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
         ax.set_yscale('log')
         ax.set_xscale('log')
         ax.tick_params(which='minor', length=minorTickSize)
         ax.tick_params(which='major', length=majorTickSize)
 
-        fr_mo.plot_solution(band=band, line=True, ms=40, with_lines=True, no_2s=False,
-                            ls='-', line_ls='--', label=label_mo)
+        fr_mo.plot_solution(
+            band=band,
+            line=True,
+            ms=40,
+            with_lines=True,
+            no_2s=False,
+            ls='-',
+            line_ls='--',
+            label=label_mo
+        )
 
         if xlim is not None and ylim is not None:
             ax.set_xlim(xlim[0], xlim[1])

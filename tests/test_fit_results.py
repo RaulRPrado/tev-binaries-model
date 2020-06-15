@@ -18,7 +18,7 @@ def test_init():
 def test_plot_solution():
     fr_mo = fr.FitResult(
         n_periods=4,
-        label='test',
+        label='ca',
         color='r',
         SigmaMax=1e5,
         EdotMin=1e34
@@ -41,7 +41,7 @@ def test_plot_solution():
         line=True,
         ms=40,
         with_lines=True,
-        no_2s=True,
+        no_2s=False,
         ls='-',
         line_ls=':',
         label='test'

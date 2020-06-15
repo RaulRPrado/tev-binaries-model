@@ -46,14 +46,11 @@ class FitResult(object):
             self.distPulsarMin.append(self.distPulsar[ip][idxMin])
             self.normMin.append(10**self.lgNorm[ip][idxMin])
 
-        print(
-            'ChiSqMin/ndf=',
-            round(self.chiSqMin, 2),
-            '/',
-            self.ndf,
-            '=',
-            round(self.chiSqMin/self.ndf, 3)
+        msg = (
+            'ChiSqMin/ndf=' + str(round(self.chiSqMin, 2)) + '/' + str(self.ndf)
+            + '=' + str(round(self.chiSqMin/self.ndf, 3))
         )
+        logging.info(msg)
 
         self.sigma_1s, self.chiSq_1s = list(), list()
         self.lgEdot_1s, self.lgSigma_1s = list(), list()
@@ -75,6 +72,7 @@ class FitResult(object):
                 self.dist[0] - self.distPulsar[0][ii] > 1.12
                 and self.dist[1] - self.distPulsar[1][ii] > 1.12
             )
+            # 2 sigma band
             if (
                 sig < math.sqrt(6.18)
                 and self.lgEdot[ii] > math.log10(self.EdotMin)
@@ -84,6 +82,7 @@ class FitResult(object):
                 self.chiSq_2s.append(self.chiSq[ii])
                 self.lgEdot_2s.append(self.lgEdot[ii])
                 self.lgSigma_2s.append(self.lgSigma[ii])
+                # 1 sigma band
                 if sig < math.sqrt(2.3):
                     self.sigma_1s.append(sig)
                     self.chiSq_1s.append(self.chiSq[ii])
@@ -114,13 +113,17 @@ class FitResult(object):
 
             for ip in range(self.nPeriods):
 
-                colDist = [d for (d, e) in zip(self.distPulsar_1s[ip], self.lgEdot_1s) if e == lgEdotSet[ii]]
-                colLgNorm = [n for (n, e) in zip(self.lgNorm_1s[ip], self.lgEdot_1s) if e == lgEdotSet[ii]]
-                colB = [b for (b, e) in zip(self.b_1s[ip], self.lgEdot_1s) if e == lgEdotSet[ii]]
+                colDist, colLgNorm, colB = list(), list(), list()
+                for ie in range(len(self.lgEdot_1s)):
+                    if self.lgEdot_1s[ie] != lgEdotSet[ii]:
+                        continue
+                    colDist.append(self.distPulsar_1s[ip][ie])
+                    colLgNorm.append(self.lgNorm_1s[ip][ie])
+                    colB.append(self.b_1s[ip][ie])
 
-                self.distPulsarLine.append(colDist[idxMin] / self.dist[0])
-                self.bLine.append(colB[idxMin])
-                self.lgNormLine.append(colLgNorm[idxMin])
+                self.distPulsarLine[ip].append(colDist[idxMin] / self.dist[0])
+                self.bLine[ip].append(colB[idxMin])
+                self.lgNormLine[ip].append(colLgNorm[idxMin])
 
         self.lgEdotLine_2s, self.lgSigmaLine_2s = list(), list()
         self.lgSigmaInf_2s, self.lgSigmaSup_2s = list(), list()
@@ -301,43 +304,76 @@ class FitResult(object):
         idx = np.argmin(np.array([math.fabs(l - math.log10(Edot)) for l in self.lgEdotLine]))
         Edot_star = 10**self.lgEdotLine[idx]
         sig_star = 10**self.lgSigmaLine[idx]
-        plt.plot(Edot_star, sig_star,
-                 marker=marker, c=self.color, markersize=ms)
+        plt.plot(
+            Edot_star,
+            sig_star,
+            marker=marker,
+            c=self.color,
+            markersize=ms
+        )
 
     def plot_sigma(self, line=True, star=True):
         if line:
-            lgEdotSorted, lgSigmaSorted = zip(*sorted(zip(self.lgEdotLine,
-                                                          self.lgSigmaLine)))
+            lgEdotSorted, lgSigmaSorted = zip(*sorted(zip(
+                self.lgEdotLine,
+                self.lgSigmaLine
+            )))
 
-            plt.plot([10**l for l in lgEdotSorted], [10*l for l in lgSigmaSorted],
-                     marker='None', ls='--', c=self.color)
+            plt.plot(
+                [10**l for l in lgEdotSorted],
+                [10*l for l in lgSigmaSorted],
+                marker='None',
+                ls='--',
+                c=self.color
+            )
 
         if star:
-            plt.plot([10**self.lgEdotMin], [10**self.lgSigmaMin],
-                     marker='*', ls='None', c=self.color, markersize=10)
+            plt.plot(
+                [10**self.lgEdotMin],
+                [10**self.lgSigmaMin],
+                marker='*',
+                ls='None',
+                c=self.color,
+                markersize=10
+            )
 
     def plot_sigma_dist(self, line=True, star=True, ls='-', label='None', in_cm=True, lw=1):
         if line:
-            distSorted, lgSigmaSorted = zip(*sorted(zip(self.distPulsar0Line,
-                                                        self.lgSigmaLine)))
+            distSorted, lgSigmaSorted = zip(*sorted(zip(
+                self.distPulsar0Line,
+                self.lgSigmaLine
+            )))
 
             fac = u.au.to(u.cm) if in_cm else 1
-            plt.plot([fac * d * self.dist0 for d in distSorted],
-                     [10**l for l in lgSigmaSorted],
-                     marker='None', ls=ls, c=self.color, label=label, linewidth=lw)
+            plt.plot(
+                [fac * d * self.dist0 for d in distSorted],
+                [10**l for l in lgSigmaSorted],
+                marker='None',
+                ls=ls,
+                c=self.color,
+                label=label,
+                linewidth=lw
+            )
 
     def plot_crab_sigma(self, alpha=1, ls='-'):
 
         def comp_sig_crab(rs, alpha):
             return 3e-3 * pow(3e17 * u.cm.to(u.au) / rs, alpha)
 
-        sig_crab = [comp_sig_crab(rs * self.dist0, alpha) for rs in self.distPulsar0Line]
+        sig_crab = [comp_sig_crab(rs * self.dist[0], alpha) for rs in self.distPulsarLine[0]]
 
-        lgEdotSorted, sigmaSorted = zip(*sorted(zip(self.lgEdotLine,
-                                                    sig_crab)))
+        lgEdotSorted, sigmaSorted = zip(*sorted(zip(
+            self.lgEdotLine,
+            sig_crab
+        )))
 
-        plt.plot([10**l for l in lgEdotSorted], sigmaSorted,
-                 marker='None', ls=ls, c=self.color)
+        plt.plot(
+            [10**l for l in lgEdotSorted],
+            sigmaSorted,
+            marker='None',
+            ls=ls,
+            c=self.color
+        )
 
     def plot_B(self, line=True, star=True, only_0=True, ls='-', label='None'):
         if line:
