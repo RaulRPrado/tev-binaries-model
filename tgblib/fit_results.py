@@ -17,6 +17,7 @@ from naima.models import (
 
 import tgblib.pulsar as psr
 import tgblib.radiative as rad
+import tgblib.parameters as pars
 from tgblib import data
 from tgblib import absorption
 
@@ -437,22 +438,26 @@ class FitResult(object):
             plt.plot([10**l for l in lgEdotSorted], Ebr1Sorted,
                      marker='None', ls=ls, c=self.color)
 
-    def plot_density(self, line=True, only_0=True, ls='-', label='None'):
+    def plot_density(self, line=True, iperiod=0, ls='-', label='None'):
         if line:
-            density0 = [psr.PhotonDensity(Tstar=3e4, Rstar=7.8, d=self.dist0 * (1 - r))
-                        for r in self.distPulsar0Line]
-            density1 = [psr.PhotonDensity(Tstar=3e4, Rstar=7.8, d=self.dist1 * (1 - r))
-                        for r in self.distPulsar1Line]
+            density = [
+                psr.PhotonDensity(Tstar=pars.TSTAR, Rstar=pars.RSTAR, d=self.dist[iperiod]*(1 - r))
+                for r in self.distPulsarLine[iperiod]
+            ]
 
-            lgEdotSorted, density0Sorted, density1Sorted = zip(*sorted(zip(self.lgEdotLine,
-                                                                           density0,
-                                                                           density1)))
+            lgEdotSorted, densitySorted = zip(*sorted(zip(
+                self.lgEdotLine,
+                density
+            )))
 
-            plt.plot([10**l for l in lgEdotSorted], density0Sorted,
-                     marker='None', ls=ls, c=self.color, label=label)
-            if not only_0:
-                plt.plot([10**l for l in lgEdotSorted], density1Sorted,
-                         marker='None', ls=ls, c=self.color)
+            plt.plot(
+                [10**l for l in lgEdotSorted],
+                densitySorted,
+                marker='None',
+                ls=ls,
+                c=self.color,
+                label=label
+            )
 
     def plot_dist(self, line=True, star=True, label='None', ls='-', ratio=True):
         fac = 1 if ratio else self.dist0
