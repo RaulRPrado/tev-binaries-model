@@ -375,24 +375,31 @@ class FitResult(object):
             c=self.color
         )
 
-    def plot_B(self, line=True, star=True, only_0=True, ls='-', label='None'):
+    def plot_B(self, line=True, star=True, iperiod=0, ls='-', label='None'):
+
         if line:
-            lgEdotSorted, b0Sorted, b1Sorted = zip(*sorted(zip(self.lgEdotLine,
-                                                               self.b0Line,
-                                                               self.b1Line)))
-            plt.plot([10**l for l in lgEdotSorted], b0Sorted,
-                     marker='None', ls=ls, c=self.color, label=label)
-            if not only_0:
-                plt.plot([10**l for l in lgEdotSorted], b1Sorted,
-                         marker='None', ls=ls, c=self.color)
+            lgEdotSorted, bSorted = zip(*sorted(zip(
+                self.lgEdotLine,
+                self.bLine[iperiod]
+            )))
+            plt.plot(
+                [10**l for l in lgEdotSorted],
+                bSorted,
+                marker='None',
+                ls=ls,
+                c=self.color,
+                label=label
+            )
 
         if star:
-            plt.plot([10**self.lgEdotMin], [self.b0Min],
-                     marker='*', ls='None', c=self.color, markersize=10)
-
-            if not only_0:
-                plt.plot([10**self.lgEdotMin], [self.b1Min],
-                         marker='*', ls='None', c=self.color, markersize=10)
+            plt.plot(
+                [10**self.lgEdotMin],
+                [self.bMin[iperiod]],
+                marker='*',
+                ls='None',
+                c=self.color,
+                markersize=10
+            )
 
     def plot_esyn(self, only_0=True, ls='-', label='None'):
         Tstar = 30e3
