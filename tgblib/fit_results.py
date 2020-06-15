@@ -459,18 +459,31 @@ class FitResult(object):
                 label=label
             )
 
-    def plot_dist(self, line=True, star=True, label='None', ls='-', ratio=True):
-        fac = 1 if ratio else self.dist0
+    def plot_dist(self, line=True, star=True, iperiod=0, label='None', ls='-', ratio=True):
+        fac = 1 if ratio else self.dist[iperiod]
         if line:
-            lgEdotSorted, dist0Sorted, dist1Sorted = zip(*sorted(zip(self.lgEdotLine,
-                                                                     self.distPulsar0Line,
-                                                                     self.distPulsar1Line)))
-            plt.plot([10**l for l in lgEdotSorted], [fac * d for d in dist0Sorted],
-                     marker='None', ls=ls, c=self.color, label=label)
+            lgEdotSorted, distSorted = zip(*sorted(zip(
+                self.lgEdotLine,
+                self.distPulsarLine[iperiod]
+            )))
+            plt.plot(
+                [10**l for l in lgEdotSorted],
+                [fac * d for d in distSorted],
+                marker='None',
+                ls=ls,
+                c=self.color,
+                label=label
+            )
 
         if star:
-            plt.plot([10**self.lgEdotMin], [fac * self.distPulsar0Min / self.dist0],
-                     marker='*', ls='None', c=self.color, markersize=12)
+            plt.plot(
+                [10**self.lgEdotMin],
+                [fac * self.distPulsarMin[iperiod] / self.dist[iperiod]],
+                marker='*',
+                ls='None',
+                c=self.color,
+                markersize=12
+            )
 
     def plot_optical_depth(self, line=True, star=True, label='None', ls='-',
                            pos0=np.array([1, 1, 1]), Tstar=30e3, Rstar=7.8):

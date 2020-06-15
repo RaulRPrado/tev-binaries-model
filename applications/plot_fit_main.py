@@ -41,8 +41,8 @@ if __name__ == '__main__':
     do_sed = False
     do_sed_both = False
     do_mag = False
-    do_density = True
-    do_dist = False
+    do_density = False
+    do_dist = True
     do_opt = False
     do_ebr = False
     do_sig = False
@@ -521,15 +521,14 @@ if __name__ == '__main__':
         fig = plt.gcf()
         ax = plt.gca()
         ax.set_ylabel(r'$R_\mathrm{sh, 0}$ [AU]')
-        # ax.set_xlabel(r'$\dot{E}$ [erg s$^{-1}$]')
         ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
         ax.set_yscale('log')
         ax.set_xscale('log')
         ax.tick_params(which='minor', length=minorTickSize)
         ax.tick_params(which='major', length=majorTickSize)
 
-        fr_ca.plot_dist(line=True, ls='--', ratio=False)
-        fr_mo.plot_dist(line=True, ls=':', ratio=False)
+        fr_ca.plot_dist(line=True, ls='--', ratio=False, iperiod=0)
+        fr_mo.plot_dist(line=True, ls=':', ratio=False, iperiod=0)
 
         if xlim is not None and ylim is not None:
             ax.set_xlim(xlim[0], xlim[1])
