@@ -38,15 +38,15 @@ if __name__ == '__main__':
     band = True
     fast_sed = True
     do_solution = False
-    do_sed = False
+    do_sed = True
     do_sed_both = False
     do_mag = False
     do_density = False
-    do_dist = True
+    do_dist = False
     do_opt = False
-    do_ebr = False
-    do_sig = False
-    do_mdot = False
+    do_ebr = False      # no
+    do_sig = False      # no
+    do_mdot = False     # no
 
     label_ca = 'Orbit by Casares et al. 2012'
     label_mo = 'Orbit by Moritani et al. 2018'
@@ -545,15 +545,14 @@ if __name__ == '__main__':
         fig = plt.gcf()
         ax = plt.gca()
         ax.set_ylabel(r'$\tau_{\gamma\gamma,\;0}$')
-        # ax.set_xlabel(r'$\dot{E}$ [erg s$^{-1}$]')
         ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
         ax.set_yscale('log')
         ax.set_xscale('log')
         ax.tick_params(which='minor', length=minorTickSize)
         ax.tick_params(which='major', length=7)
 
-        fr_ca.plot_optical_depth(line=True, ls='--', pos0=pos_ca[0])
-        fr_mo.plot_optical_depth(line=True, ls=':', pos0=pos_mo[0])
+        fr_ca.plot_optical_depth(line=True, ls='--', pos=pos_ca[0], iperiod=0)
+        fr_mo.plot_optical_depth(line=True, ls=':', pos=pos_mo[0], iperiod=0)
 
         if xlim is not None and ylim is not None:
             ax.set_xlim(xlim[0], xlim[1])

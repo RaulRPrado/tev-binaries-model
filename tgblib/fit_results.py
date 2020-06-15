@@ -485,41 +485,61 @@ class FitResult(object):
                 markersize=12
             )
 
-    def plot_optical_depth(self, line=True, star=True, label='None', ls='-',
-                           pos0=np.array([1, 1, 1]), Tstar=30e3, Rstar=7.8):
+    def plot_optical_depth(
+        self,
+        pos,
+        line=True,
+        star=True,
+        iperiod=0,
+        label='None',
+        ls='-',
+        Tstar=pars.TSTAR,
+        Rstar=pars.RSTAR
+    ):
 
         if line:
-            lgEdotSorted, dist0Sorted = zip(*sorted(zip(self.lgEdotLine,
-                                                        self.distPulsar0Line)))
-            lgEdotPlot, dist0Plot = list(), list()
+            lgEdotSorted, distSorted = zip(*sorted(zip(
+                self.lgEdotLine,
+                self.distPulsarLine[iperiod]
+            )))
+            lgEdotPlot, distPlot = list(), list()
             for i in range(len(lgEdotSorted)):
                 if i % 5 == 0:
                     lgEdotPlot.append(lgEdotSorted[i])
-                    dist0Plot.append(dist0Sorted[i])
+                    distPlot.append(distSorted[i])
 
             Obs = np.array([0, 0, -1])
             Abs = absorption.Absorption(Tstar=Tstar, Rstar=Rstar)
 
-            tau0 = [Abs.TauGG(en=0.2, obs=Obs, pos=pos0 * self.dist0 * (1 - r) / norm(pos0))
-                    for r in dist0Plot]
-            tau1 = [Abs.TauGG(en=5.0, obs=Obs, pos=pos0 * self.dist0 * (1 - r) / norm(pos0))
-                    for r in dist0Plot]
+            tau = [
+                Abs.TauGG(en=0.2, obs=Obs, pos=pos * self.dist[iperiod] * (1 - r) / norm(pos))
+                for r in distPlot
+            ]
 
-            tau0Min = Abs.TauGG(en=0.2, obs=Obs,
-                                pos=pos0 * (self.dist0 - self.distPulsar0Min) / norm(pos0))
-            tau1Min = Abs.TauGG(en=5.0, obs=Obs,
-                                pos=pos0 * (self.dist0 - self.distPulsar0Min) / norm(pos0))
+            tauMin = Abs.TauGG(
+                en=0.2,
+                obs=Obs,
+                pos=pos * (self.dist[iperiod] - self.distPulsarMin[iperiod]) / norm(pos)
+            )
 
-            plt.plot([10**l for l in lgEdotPlot], tau0,
-                     marker='None', ls=ls, c=self.color, label=label)
-            plt.plot([10**l for l in lgEdotPlot], tau1,
-                     marker='None', ls=ls, c=self.color, label=label)
+            plt.plot(
+                [10**l for l in lgEdotPlot],
+                tau,
+                marker='None',
+                ls=ls,
+                c=self.color,
+                label=label
+            )
 
             if star:
-                plt.plot([10**self.lgEdotMin], [tau0Min],
-                         marker='*', ls='None', c=self.color, markersize=12)
-                plt.plot([10**self.lgEdotMin], [tau1Min],
-                         marker='*', ls='None', c=self.color, markersize=12)
+                plt.plot(
+                    [10**self.lgEdotMin],
+                    [tauMin],
+                    marker='*',
+                    ls='None',
+                    c=self.color,
+                    markersize=12
+                )
 
     def plot_norm(self):
         ax = plt.gca()
