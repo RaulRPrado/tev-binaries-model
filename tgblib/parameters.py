@@ -17,15 +17,17 @@ MONTH_LABEL = {
     4: 'Feb. 2020'
 }
 
-TPER = 315
+TPER = 315  # days
 
 MJD_0 = 54857.5
 
 NO_OF_PERIODS = 5
 
-TSTAR = 3e4
+TSTAR = 3e4  # K
 
-RSTAR = 7.8
+RSTAR = 7.8  # Msun
+
+SRC_DIST = 1.4  # kpc
 
 ELEC_SPEC_INDEX = {
     0: 2.564,

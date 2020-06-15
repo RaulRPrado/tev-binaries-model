@@ -20,6 +20,7 @@ import tgblib.radiative as rad
 import tgblib.parameters as pars
 from tgblib import data
 from tgblib import absorption
+from tgblib import util
 
 
 class FitResult(object):
@@ -550,6 +551,7 @@ class FitResult(object):
 
     def plot_sed(
         self,
+        iperiod=0,
         period=0,
         best_solution=True,
         Edot=1e36,
@@ -558,92 +560,91 @@ class FitResult(object):
         pos=np.array([1, 1, 1]),
         ls='-',
         label='None',
-        Tstar=30e3,
-        Rstar=7.8,
+        Tstar=pars.TSTAR,
+        Rstar=pars.RSTAR,
         Mdot=3.16e-9,
         Vw=1500,
         emin=0.1,
         ecut=50,
         fast=False
     ):
-        Alpha = np.array([2.58, 2.16])
+        Alpha = pars.ELEC_SPEC_INDEX[period]
 
         Eref = 1 * u.TeV
         Ecut = ecut * u.TeV
         Emax = 20 * u.PeV
         Emin = emin * u.TeV
-        SourceDist = 1.4 * u.kpc
+        SourceDist = pars.SRC_DIST * u.kpc
         n_en = 1 if fast else 2
 
         Obs = np.array([0, 0, -1])
         Abs = absorption.Absorption(Tstar=Tstar, Rstar=Rstar)
 
         if best_solution:
-            b_sed = self.b0Min if period == 0 else self.b1Min
-            norm_sed = self.norm0Min if period == 0 else self.norm1Min
-            dist_sed = self.distPulsar0Min if period == 0 else self.distPulsar1Min
+            b_sed = self.bMin[iperiod]
+            norm_sed = self.normMin[iperiod]
+            dist_sed = self.distPulsarMin[iperiod]
             dist_star = dist - dist_sed
             density_sed = psr.PhotonDensity(Tstar=Tstar, Rstar=Rstar, d=dist_star)
         else:
             idx = np.argmin(np.array([math.fabs(l - math.log10(Edot)) for l in self.lgEdotLine]))
-            b_sed = self.b0Line[idx] if period == 0 else self.b1Line[idx]
-            norm_sed = 10**self.lgNorm0Line[idx] if period == 0 else 10**self.lgNorm1Line[idx]
-            dist_sed = self.distPulsar0Line[idx] if period == 0 else self.distPulsar1Line[idx]
+            b_sed = self.bLine[iperiod][idx]
+            norm_sed = 10**self.lgNormLine[iperiod][idx]
+            dist_sed = self.distPulsarLine[iperiod][idx]
             dist_star = dist * (1 - dist_sed)
             density_sed = psr.PhotonDensity(Tstar=Tstar, Rstar=Rstar, d=dist_star)
 
-        EnergyToPlot = np.concatenate((np.logspace(-0.5, 8.3, n_en * 200),
-                                       np.logspace(8.3, 9.5, n_en * 5))) * u.keV
+        EnergyToPlot = np.logspace(-0.5, 9.6, n_en * 200) * u.keV
 
-        ECPL = ExponentialCutoffPowerLaw(amplitude=norm_sed / u.eV,
-                                         e_0=Eref,
-                                         alpha=Alpha[period],
-                                         e_cutoff=Ecut)
-        # Testing ECBPL
-        # alpha_1 = Alpha[period] - 0.5
-        # alpha_2 = Alpha[period]
+        ECPL = ExponentialCutoffPowerLaw(
+            amplitude=norm_sed / u.eV,
+            e_0=Eref,
+            alpha=Alpha,
+            e_cutoff=Ecut
+        )
 
-        # norm_bpl = norm_sed * pow(Eref / Emin, alpha_2 - alpha_1)
-        # EminFac = 1e-2
-        # ECPL = ExponentialCutoffBrokenPowerLaw(amplitude=norm_bpl / u.eV,
-        #                                        e_0=Eref,
-        #                                        alpha_1=alpha_1,
-        #                                        alpha_2=alpha_2,
-        #                                        e_break=Emin,
-        #                                        e_cutoff=Ecut)
-
-        SYN = Synchrotron(particle_distribution=ECPL,
-                          B=b_sed * u.G,
-                          Eemax=Emax,
-                          Eemin=Emin)
-        IC = InverseCompton(particle_distribution=ECPL,
-                            seed_photon_fields=[['STAR',
-                                                 Tstar * u.K,
-                                                 density_sed * u.erg / u.cm**3,
-                                                 theta_ic * u.deg]],
-                            Eemax=Emax,
-                            Eemin=Emin)
-
-        # tau = [Abs.TauGG(en=e.value * u.keV.to(u.TeV), obs=Obs,
-        #                  pos=pos * dist_star / norm(pos)) for e in EnergyToPlot]
+        SYN = Synchrotron(
+            particle_distribution=ECPL,
+            B=b_sed * u.G,
+            Eemax=Emax,
+            Eemin=Emin
+        )
+        IC = InverseCompton(
+            particle_distribution=ECPL,
+            seed_photon_fields=[[
+                'STAR',
+                Tstar * u.K,
+                density_sed * u.erg / u.cm**3,
+                theta_ic * u.deg
+            ]],
+            Eemax=Emax,
+            Eemin=Emin
+        )
 
         tau = list()
         for e in EnergyToPlot:
             if e.value * u.keV.to(u.TeV) < 1e-2:
                 tau.append(0)
             else:
-                tau.append(Abs.TauGG(en=e.value * u.keV.to(u.TeV), obs=Obs,
-                           pos=pos * dist_star / norm(pos)))
+                tau.append(Abs.TauGG(
+                    en=e.value * u.keV.to(u.TeV),
+                    obs=Obs,
+                    pos=pos * dist_star / norm(pos)
+                ))
 
-        model = (SYN.sed(photon_energy=EnergyToPlot, distance=SourceDist) +
-                 IC.sed(photon_energy=EnergyToPlot, distance=SourceDist))
+        model = (
+            SYN.sed(photon_energy=EnergyToPlot, distance=SourceDist)
+            + IC.sed(photon_energy=EnergyToPlot, distance=SourceDist)
+        )
         model_abs = [math.exp(-t) * m.value for (m, t) in zip(model, tau)]
+
+        EnergyToPlot, model_abs = util.fix_naima_bug(EnergyToPlot, model_abs)
 
         ax = plt.gca()
         ax.plot(EnergyToPlot, model_abs, ls=ls, c=self.color, label=label)
 
         # Integrating spectrum
-        spec = [m.value / e.value / u.keV.to(u.erg) for (m, e) in zip(model, EnergyToPlot)]
-        en = [e.value * u.keV.to(u.erg) for e in EnergyToPlot]
-        L = np.trapz(x=en, y=spec) * 4 * math.pi * (1.4 * u.kpc.to(u.cm))**2
-        print('SED Luminosity = ', L, 'ergs/s')
+        # spec = [m.value / e.value / u.keV.to(u.erg) for (m, e) in zip(model, EnergyToPlot)]
+        # en = [e.value * u.keV.to(u.erg) for e in EnergyToPlot]
+        # L = np.trapz(x=en, y=spec) * 4 * math.pi * (SourceDist * u.kpc.to(u.cm))**2
+        # print('SED Luminosity = ', L, 'ergs/s')

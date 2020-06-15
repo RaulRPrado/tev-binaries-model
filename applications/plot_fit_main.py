@@ -1,17 +1,10 @@
 #!/usr/bin/python3
 
-import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-import itertools
-from scipy.interpolate import make_interp_spline, BSpline
-from scipy import interpolate
-from matplotlib.patches import Polygon
-from matplotlib.collections import PatchCollection
 
 import astropy.units as u
-import astropy.constants as const
 import naima
 from iminuit import Minuit
 from naima.models import (
@@ -32,7 +25,7 @@ from tgblib import orbit
 if __name__ == '__main__':
 
     util.set_my_fonts(mode='talk')
-    small_label = ''
+    small_label = '_prev'
     which_orbit = ['ca', 'mo']
     show = True
     band = True
@@ -61,7 +54,8 @@ if __name__ == '__main__':
     systems_ca = orbit.getCasaresSystem()
     systems_mo = orbit.getMoritaniSystem()
 
-    periods = [0, 1, 2, 4]
+    # periods = [0, 1, 2, 4]
+    periods = [0, 1]
     mjd_pts = mjd_pts = [pars.MJD_MEAN[p] for p in periods]
     orbits_ca = orbit.SetOfOrbits(
         phase_step=0.0005,
@@ -88,14 +82,14 @@ if __name__ == '__main__':
     #############
     # Fit Results
     fr_ca = fr.FitResult(
-        n_periods=4,
+        n_periods=len(periods),
         label='ca' + small_label,
         color='r',
         SigmaMax=SigmaMax,
         EdotMin=EdotMin
     )
     fr_mo = fr.FitResult(
-        n_periods=4,
+        n_periods=len(periods),
         label='mo' + small_label,
         color='b',
         SigmaMax=SigmaMax,
@@ -222,169 +216,131 @@ if __name__ == '__main__':
     def plot_sed():
         ##############################
         # SED Casares
-        plt.figure(figsize=(16, 6), tight_layout=True)
+        # plt.figure(figsize=(len(periods)*8, 6), tight_layout=True)
 
-        for iper in [0, 1]:
-            plt.subplot(1, 2, iper + 1)
-            fig = plt.gcf()
-            ax = plt.gca()
-            ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
-            ax.set_xlabel(r'$E$ [keV]')
-            ax.set_yscale('log')
-            ax.set_xscale('log')
-            ax.tick_params(which='minor', length=minorTickSize)
-            ax.tick_params(which='major', length=majorTickSize)
+        for orb in ['Mo']:
 
-            data_en, data_fl, data_fl_er = data.get_data(iper, '5sig')
-            fermi_spec_en, fermi_spec_fl, fermi_spec_fl_er = data.get_fermi_spec()
-            fermi_lim_en, fermi_lim_fl, fermi_lim_fl_er = data.get_fermi_upper_limits()
+            plt.figure(figsize=(2 * 8, 2 * 6), tight_layout=True)
+            for iper, per in enumerate(periods):
+                plt.subplot(2, 2, iper + 1)
+                fig = plt.gcf()
+                ax = plt.gca()
+                ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
+                ax.set_xlabel(r'$E$ [keV]')
+                ax.set_yscale('log')
+                ax.set_xscale('log')
+                ax.tick_params(which='minor', length=minorTickSize)
+                ax.tick_params(which='major', length=majorTickSize)
 
-            main_ca = round((10**fr_ca.lgEdotMin) / (10**int(fr_ca.lgEdotMin)), 2)
-            pow_ca = int(fr_ca.lgEdotMin)
+                if orb == 'Ca':
+                    label_main = round((10**fr_ca.lgEdotMin) / (10**int(fr_ca.lgEdotMin)), 2)
+                    label_pow = int(fr_ca.lgEdotMin)
+                    label_sed = (
+                        label_ca + '\n' + r'$L_\mathrm{sd}=$' +
+                        str(label_main) + r'$\;10^{'+str(label_pow) + r'}$' +
+                        r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_ca.lgSigmaMin)
+                    )
+                else:
+                    label_main = round((10**fr_mo.lgEdotMin) / (10**int(fr_mo.lgEdotMin)), 2)
+                    label_pow = int(fr_mo.lgEdotMin)
+                    label_sed = (
+                        label_mo + '\n' + r'$L_\mathrm{sd}=$' +
+                        str(label_main) + r'$\;10^{'+str(label_pow) + r'}$' +
+                        r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_mo.lgSigmaMin)
+                    )
 
-            label_ca_sed = (label_ca + '\n' + r'$L_\mathrm{sd}=$' +
-                            str(main_ca) + r'$\;10^{'+str(pow_ca) + r'}$' +
-                            r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_ca.lgSigmaMin))
-
-            if iper == 0:
-                ax.text(0.05, 0.85, label_ca_sed, transform=ax.transAxes, horizontalalignment='left')
-
-            fr_ca.plot_sed(period=iper,
-                           theta_ic=theta_ic_ca[iper],
-                           dist=dist_ca[iper],
-                           pos=pos_ca[iper],
-                           ls='-',
-                           label=r'$E_\mathrm{min}=0.1$ TeV, $E_\mathrm{cut}=50$ TeV',
-                           emin=0.10,
-                           ecut=50,
-                           fast=fast_sed)
-            fr_ca.plot_sed(period=iper,
-                           theta_ic=theta_ic_ca[iper],
-                           dist=dist_ca[iper],
-                           pos=pos_ca[iper],
-                           ls='--',
-                           label=r'$E_\mathrm{min}=0.2$ TeV, $E_\mathrm{cut}=100$ TeV',
-                           emin=0.20,
-                           ecut=100,
-                           fast=fast_sed)
-
-            ax.errorbar(data_en,
-                        data_fl,
-                        yerr=data_fl_er,
-                        linestyle='None',
-                        color='k',
-                        marker='o')
-
-            # ax.errorbar(fermi_spec_en,
-            #             fermi_spec_fl,
-            #             yerr=fermi_spec_fl_er,
-            #             color='k',
-            #             marker='o',
-            #             ls='None',
-            #             alpha=0.3)
-            # ax.errorbar(fermi_lim_en,
-            #             fermi_lim_fl,
-            #             yerr=fermi_lim_fl_er,
-            #             uplims=True,
-            #             color='k',
-            #             ls='None',
-            #             alpha=0.3)
-
-            ax.set_ylim(2e-14, 7e-11)
-
-            if iper == 1:
-                ax.legend(loc='upper left', frameon=False)
-
-        if show:
-            plt.show()
-        else:
-            plt.savefig('figures/FitSEDCa.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSEDCa.png', format='png', bbox_inches='tight')
-
-        ##############################
-        # SED Moritani
-        plt.figure(figsize=(16, 6), tight_layout=True)
-
-        for iper in [0, 1]:
-            plt.subplot(1, 2, iper + 1)
-            fig = plt.gcf()
-            ax = plt.gca()
-            ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
-            ax.set_xlabel(r'$E$ [keV]')
-            ax.set_yscale('log')
-            ax.set_xscale('log')
-            ax.tick_params(which='minor', length=minorTickSize)
-            ax.tick_params(which='major', length=majorTickSize)
-
-            data_en, data_fl, data_fl_er = data.get_data(iper, '5sig')
-            fermi_spec_en, fermi_spec_fl, fermi_spec_fl_er = data.get_fermi_spec()
-            fermi_lim_en, fermi_lim_fl, fermi_lim_fl_er = data.get_fermi_upper_limits()
-
-            main_mo = round((10**fr_mo.lgEdotMin) / (10**int(fr_mo.lgEdotMin)), 2)
-            pow_mo = int(fr_mo.lgEdotMin)
-
-            label_mo_sed = (label_mo + '\n' + r'$L_\mathrm{sd}=$' +
-                            str(main_mo) + r'$\;10^{'+str(pow_mo) + r'}$' +
-                            r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_mo.lgSigmaMin))
-
-            if iper == 0:
-                ax.text(0.05,
+                if iper == 0:
+                    ax.text(
+                        0.05,
                         0.85,
-                        label_mo_sed,
+                        label_sed,
                         transform=ax.transAxes,
-                        horizontalalignment='left')
+                        horizontalalignment='left'
+                    )
 
-            fr_mo.plot_sed(period=iper,
-                           theta_ic=theta_ic_mo[iper],
-                           dist=dist_mo[iper],
-                           pos=pos_mo[iper],
-                           ls='-',
-                           label=r'$E_\mathrm{min}=0.1$ TeV, $E_\mathrm{cut}=50$ TeV',
-                           emin=0.10,
-                           ecut=50,
-                           fast=fast_sed)
-            fr_mo.plot_sed(period=iper,
-                           theta_ic=theta_ic_mo[iper],
-                           dist=dist_mo[iper],
-                           pos=pos_mo[iper],
-                           ls='--',
-                           label=r'$E_\mathrm{min}=0.2$ TeV, $E_\mathrm{cut}=100$ TeV',
-                           emin=0.20,
-                           ecut=100,
-                           fast=fast_sed)
+                if orb == 'Ca':
+                    fr_ca.plot_sed(
+                        iperiod=iper,
+                        period=per,
+                        theta_ic=theta_ic_ca[iper],
+                        dist=dist_ca[iper],
+                        pos=pos_ca[iper],
+                        ls='-',
+                        label=r'$E_\mathrm{min}=0.1$ TeV, $E_\mathrm{cut}=50$ TeV',
+                        emin=0.10,
+                        ecut=50,
+                        fast=fast_sed
+                    )
+                    # fr_ca.plot_sed(
+                    #     iperiod=iper,
+                    #     period=per,
+                    #     theta_ic=theta_ic_ca[iper],
+                    #     dist=dist_ca[iper],
+                    #     pos=pos_ca[iper],
+                    #     ls='--',
+                    #     label=r'$E_\mathrm{min}=0.2$ TeV, $E_\mathrm{cut}=100$ TeV',
+                    #     emin=0.20,
+                    #     ecut=100,
+                    #     fast=fast_sed
+                    # )
+                else:
+                    fr_mo.plot_sed(
+                        iperiod=iper,
+                        period=per,
+                        theta_ic=theta_ic_mo[iper],
+                        dist=dist_mo[iper],
+                        pos=pos_mo[iper],
+                        ls='-',
+                        label=r'$E_\mathrm{min}=0.1$ TeV, $E_\mathrm{cut}=50$ TeV',
+                        emin=0.10,
+                        ecut=50,
+                        fast=fast_sed
+                    )
+                    # fr_mo.plot_sed(
+                    #     iperiod=iper,
+                    #     period=per,
+                    #     theta_ic=theta_ic_mo[iper],
+                    #     dist=dist_mo[iper],
+                    #     pos=pos_mo[iper],
+                    #     ls='--',
+                    #     label=r'$E_\mathrm{min}=0.2$ TeV, $E_\mathrm{cut}=100$ TeV',
+                    #     emin=0.20,
+                    #     ecut=100,
+                    #     fast=fast_sed
+                    # )
 
-            ax.errorbar(data_en,
-                        data_fl,
-                        yerr=data_fl_er,
-                        linestyle='None',
+                data_en, data_fl, data_fl_er = data.get_data(per)
+                ax.errorbar(
+                    data_en,
+                    data_fl,
+                    yerr=data_fl_er,
+                    linestyle='None',
+                    color='k',
+                    marker='o'
+                )
+
+                data_en_ul, data_fl_ul = data.get_data_ul(per)
+                if len(data_en_ul) > 0:
+                    data_fl_ul_err = [p - pow(10, math.log10(p)-0.1) for p in data_fl_ul]
+                    ax.errorbar(
+                        data_en_ul,
+                        data_fl_ul,
+                        yerr=data_fl_ul_err,
+                        uplims=True,
                         color='k',
-                        marker='o')
+                        linestyle='none'
+                    )
 
-            # ax.errorbar(fermi_spec_en,
-            #             fermi_spec_fl,
-            #             yerr=fermi_spec_fl_er,
-            #             color='k',
-            #             marker='o',
-            #             ls='None',
-            #             alpha=0.3)
-            # ax.errorbar(fermi_lim_en,
-            #             fermi_lim_fl,
-            #             yerr=fermi_lim_fl_er,
-            #             uplims=True,
-            #             color='k',
-            #             ls='None',
-            #             alpha=0.3)
+                ax.set_ylim(2e-14, 7e-11)
 
-            ax.set_ylim(2e-14, 7e-11)
+                if iper == 1:
+                    ax.legend(loc='upper left', frameon=False)
 
-            if iper == 1:
-                ax.legend(loc='upper left', frameon=False)
-
-        if show:
-            plt.show()
-        else:
-            plt.savefig('figures/FitSEDMo.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSEDMo.png', format='png', bbox_inches='tight')
+            if show:
+                plt.show()
+            else:
+                plt.savefig('figures/FitSED' + orb + '.pdf', format='pdf', bbox_inches='tight')
+                plt.savefig('figures/FitSED' + orb + '.png', format='png', bbox_inches='tight')
 
     def plot_sed_both():
         ##############################
