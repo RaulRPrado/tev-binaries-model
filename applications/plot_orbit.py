@@ -12,11 +12,12 @@ from tgblib import orbit
 if __name__ == '__main__':
 
     util.set_my_fonts(mode='text')
-    show = True
+    show = False
+    label = '_p317'
 
     periods = [0, 1, 2, 3, 4]
 
-    Tper = 315
+    Tper = 317
 
     mjd_pts = [MJD_MEAN[p] for p in periods]
     markers = ['o', '*', '^', 's', 'D']
@@ -138,8 +139,8 @@ if __name__ == '__main__':
     if show:
         plt.show()
     else:
-        plt.savefig('figures/OrbitCa.png', format='png', bbox_inches='tight')
-        plt.savefig('figures/OrbitCa.pdf', format='pdf', bbox_inches='tight')
+        plt.savefig('figures/OrbitCa' + label + '.png', format='png', bbox_inches='tight')
+        plt.savefig('figures/OrbitCa' + label + '.pdf', format='pdf', bbox_inches='tight')
 
     ##########
     # Orbit Mo
@@ -201,8 +202,8 @@ if __name__ == '__main__':
     if show:
         plt.show()
     else:
-        plt.savefig('figures/OrbitMo.png', format='png', bbox_inches='tight')
-        plt.savefig('figures/OrbitMo.pdf', format='pdf', bbox_inches='tight')
+        plt.savefig('figures/OrbitMo' + label + '.png', format='png', bbox_inches='tight')
+        plt.savefig('figures/OrbitMo' + label + '.pdf', format='pdf', bbox_inches='tight')
 
     ##########
     # Orbit both
@@ -267,8 +268,8 @@ if __name__ == '__main__':
     if show:
         plt.show()
     else:
-        plt.savefig('figures/OrbitBoth.png', format='png', bbox_inches='tight')
-        plt.savefig('figures/OrbitBoth.pdf', format='pdf', bbox_inches='tight')
+        plt.savefig('figures/OrbitBoth' + label + '.png', format='png', bbox_inches='tight')
+        plt.savefig('figures/OrbitBoth' + label + '.pdf', format='pdf', bbox_inches='tight')
 
     ##########
     # Distance
@@ -343,8 +344,8 @@ if __name__ == '__main__':
     if show:
         plt.show()
     else:
-        plt.savefig('figures/OrbitDistance.png', format='png', bbox_inches='tight')
-        plt.savefig('figures/OrbitDistance.pdf', format='pdf', bbox_inches='tight')
+        plt.savefig('figures/OrbitDistance' + label + '.png', format='png', bbox_inches='tight')
+        plt.savefig('figures/OrbitDistance' + label + '.pdf', format='pdf', bbox_inches='tight')
 
     ##########
     # Theta IC
@@ -409,5 +410,5 @@ if __name__ == '__main__':
     if show:
         plt.show()
     else:
-        plt.savefig('figures/OrbitTheta.png', format='png', bbox_inches='tight')
-        plt.savefig('figures/OrbitTheta.pdf', format='pdf', bbox_inches='tight')
+        plt.savefig('figures/OrbitTheta' + label + '.png', format='png', bbox_inches='tight')
+        plt.savefig('figures/OrbitTheta' + label + '.pdf', format='pdf', bbox_inches='tight')

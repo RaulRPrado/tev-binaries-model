@@ -17,8 +17,10 @@ from naima.models import (
 
 import tgblib.pulsar as psr
 import tgblib.radiative as rad
+import tgblib.parameters as pars
 from tgblib import data
 from tgblib import absorption
+from tgblib import util
 
 
 class FitResult(object):
@@ -46,14 +48,11 @@ class FitResult(object):
             self.distPulsarMin.append(self.distPulsar[ip][idxMin])
             self.normMin.append(10**self.lgNorm[ip][idxMin])
 
-        print(
-            'ChiSqMin/ndf=',
-            round(self.chiSqMin, 2),
-            '/',
-            self.ndf,
-            '=',
-            round(self.chiSqMin/self.ndf, 3)
+        msg = (
+            'ChiSqMin/ndf=' + str(round(self.chiSqMin, 2)) + '/' + str(self.ndf)
+            + '=' + str(round(self.chiSqMin/self.ndf, 3))
         )
+        logging.info(msg)
 
         self.sigma_1s, self.chiSq_1s = list(), list()
         self.lgEdot_1s, self.lgSigma_1s = list(), list()
@@ -75,6 +74,7 @@ class FitResult(object):
                 self.dist[0] - self.distPulsar[0][ii] > 1.12
                 and self.dist[1] - self.distPulsar[1][ii] > 1.12
             )
+            # 2 sigma band
             if (
                 sig < math.sqrt(6.18)
                 and self.lgEdot[ii] > math.log10(self.EdotMin)
@@ -84,6 +84,7 @@ class FitResult(object):
                 self.chiSq_2s.append(self.chiSq[ii])
                 self.lgEdot_2s.append(self.lgEdot[ii])
                 self.lgSigma_2s.append(self.lgSigma[ii])
+                # 1 sigma band
                 if sig < math.sqrt(2.3):
                     self.sigma_1s.append(sig)
                     self.chiSq_1s.append(self.chiSq[ii])
@@ -114,13 +115,17 @@ class FitResult(object):
 
             for ip in range(self.nPeriods):
 
-                colDist = [d for (d, e) in zip(self.distPulsar_1s[ip], self.lgEdot_1s) if e == lgEdotSet[ii]]
-                colLgNorm = [n for (n, e) in zip(self.lgNorm_1s[ip], self.lgEdot_1s) if e == lgEdotSet[ii]]
-                colB = [b for (b, e) in zip(self.b_1s[ip], self.lgEdot_1s) if e == lgEdotSet[ii]]
+                colDist, colLgNorm, colB = list(), list(), list()
+                for ie in range(len(self.lgEdot_1s)):
+                    if self.lgEdot_1s[ie] != lgEdotSet[ii]:
+                        continue
+                    colDist.append(self.distPulsar_1s[ip][ie])
+                    colLgNorm.append(self.lgNorm_1s[ip][ie])
+                    colB.append(self.b_1s[ip][ie])
 
-                self.distPulsarLine.append(colDist[idxMin] / self.dist[0])
-                self.bLine.append(colB[idxMin])
-                self.lgNormLine.append(colLgNorm[idxMin])
+                self.distPulsarLine[ip].append(colDist[idxMin] / self.dist[0])
+                self.bLine[ip].append(colB[idxMin])
+                self.lgNormLine[ip].append(colLgNorm[idxMin])
 
         self.lgEdotLine_2s, self.lgSigmaLine_2s = list(), list()
         self.lgSigmaInf_2s, self.lgSigmaSup_2s = list(), list()
@@ -301,62 +306,102 @@ class FitResult(object):
         idx = np.argmin(np.array([math.fabs(l - math.log10(Edot)) for l in self.lgEdotLine]))
         Edot_star = 10**self.lgEdotLine[idx]
         sig_star = 10**self.lgSigmaLine[idx]
-        plt.plot(Edot_star, sig_star,
-                 marker=marker, c=self.color, markersize=ms)
+        plt.plot(
+            Edot_star,
+            sig_star,
+            marker=marker,
+            c=self.color,
+            markersize=ms
+        )
 
     def plot_sigma(self, line=True, star=True):
         if line:
-            lgEdotSorted, lgSigmaSorted = zip(*sorted(zip(self.lgEdotLine,
-                                                          self.lgSigmaLine)))
+            lgEdotSorted, lgSigmaSorted = zip(*sorted(zip(
+                self.lgEdotLine,
+                self.lgSigmaLine
+            )))
 
-            plt.plot([10**l for l in lgEdotSorted], [10*l for l in lgSigmaSorted],
-                     marker='None', ls='--', c=self.color)
+            plt.plot(
+                [10**l for l in lgEdotSorted],
+                [10*l for l in lgSigmaSorted],
+                marker='None',
+                ls='--',
+                c=self.color
+            )
 
         if star:
-            plt.plot([10**self.lgEdotMin], [10**self.lgSigmaMin],
-                     marker='*', ls='None', c=self.color, markersize=10)
+            plt.plot(
+                [10**self.lgEdotMin],
+                [10**self.lgSigmaMin],
+                marker='*',
+                ls='None',
+                c=self.color,
+                markersize=10
+            )
 
     def plot_sigma_dist(self, line=True, star=True, ls='-', label='None', in_cm=True, lw=1):
         if line:
-            distSorted, lgSigmaSorted = zip(*sorted(zip(self.distPulsar0Line,
-                                                        self.lgSigmaLine)))
+            distSorted, lgSigmaSorted = zip(*sorted(zip(
+                self.distPulsar0Line,
+                self.lgSigmaLine
+            )))
 
             fac = u.au.to(u.cm) if in_cm else 1
-            plt.plot([fac * d * self.dist0 for d in distSorted],
-                     [10**l for l in lgSigmaSorted],
-                     marker='None', ls=ls, c=self.color, label=label, linewidth=lw)
+            plt.plot(
+                [fac * d * self.dist0 for d in distSorted],
+                [10**l for l in lgSigmaSorted],
+                marker='None',
+                ls=ls,
+                c=self.color,
+                label=label,
+                linewidth=lw
+            )
 
     def plot_crab_sigma(self, alpha=1, ls='-'):
 
         def comp_sig_crab(rs, alpha):
             return 3e-3 * pow(3e17 * u.cm.to(u.au) / rs, alpha)
 
-        sig_crab = [comp_sig_crab(rs * self.dist0, alpha) for rs in self.distPulsar0Line]
+        sig_crab = [comp_sig_crab(rs * self.dist[0], alpha) for rs in self.distPulsarLine[0]]
 
-        lgEdotSorted, sigmaSorted = zip(*sorted(zip(self.lgEdotLine,
-                                                    sig_crab)))
+        lgEdotSorted, sigmaSorted = zip(*sorted(zip(
+            self.lgEdotLine,
+            sig_crab
+        )))
 
-        plt.plot([10**l for l in lgEdotSorted], sigmaSorted,
-                 marker='None', ls=ls, c=self.color)
+        plt.plot(
+            [10**l for l in lgEdotSorted],
+            sigmaSorted,
+            marker='None',
+            ls=ls,
+            c=self.color
+        )
 
-    def plot_B(self, line=True, star=True, only_0=True, ls='-', label='None'):
+    def plot_B(self, line=True, star=True, iperiod=0, ls='-', label='None'):
+
         if line:
-            lgEdotSorted, b0Sorted, b1Sorted = zip(*sorted(zip(self.lgEdotLine,
-                                                               self.b0Line,
-                                                               self.b1Line)))
-            plt.plot([10**l for l in lgEdotSorted], b0Sorted,
-                     marker='None', ls=ls, c=self.color, label=label)
-            if not only_0:
-                plt.plot([10**l for l in lgEdotSorted], b1Sorted,
-                         marker='None', ls=ls, c=self.color)
+            lgEdotSorted, bSorted = zip(*sorted(zip(
+                self.lgEdotLine,
+                self.bLine[iperiod]
+            )))
+            plt.plot(
+                [10**l for l in lgEdotSorted],
+                bSorted,
+                marker='None',
+                ls=ls,
+                c=self.color,
+                label=label
+            )
 
         if star:
-            plt.plot([10**self.lgEdotMin], [self.b0Min],
-                     marker='*', ls='None', c=self.color, markersize=10)
-
-            if not only_0:
-                plt.plot([10**self.lgEdotMin], [self.b1Min],
-                         marker='*', ls='None', c=self.color, markersize=10)
+            plt.plot(
+                [10**self.lgEdotMin],
+                [self.bMin[iperiod]],
+                marker='*',
+                ls='None',
+                c=self.color,
+                markersize=10
+            )
 
     def plot_esyn(self, only_0=True, ls='-', label='None'):
         Tstar = 30e3
@@ -394,71 +439,108 @@ class FitResult(object):
             plt.plot([10**l for l in lgEdotSorted], Ebr1Sorted,
                      marker='None', ls=ls, c=self.color)
 
-    def plot_density(self, line=True, only_0=True, ls='-', label='None'):
+    def plot_density(self, line=True, iperiod=0, ls='-', label='None'):
         if line:
-            density0 = [psr.PhotonDensity(Tstar=3e4, Rstar=7.8, d=self.dist0 * (1 - r))
-                        for r in self.distPulsar0Line]
-            density1 = [psr.PhotonDensity(Tstar=3e4, Rstar=7.8, d=self.dist1 * (1 - r))
-                        for r in self.distPulsar1Line]
+            density = [
+                psr.PhotonDensity(Tstar=pars.TSTAR, Rstar=pars.RSTAR, d=self.dist[iperiod]*(1 - r))
+                for r in self.distPulsarLine[iperiod]
+            ]
 
-            lgEdotSorted, density0Sorted, density1Sorted = zip(*sorted(zip(self.lgEdotLine,
-                                                                           density0,
-                                                                           density1)))
+            lgEdotSorted, densitySorted = zip(*sorted(zip(
+                self.lgEdotLine,
+                density
+            )))
 
-            plt.plot([10**l for l in lgEdotSorted], density0Sorted,
-                     marker='None', ls=ls, c=self.color, label=label)
-            if not only_0:
-                plt.plot([10**l for l in lgEdotSorted], density1Sorted,
-                         marker='None', ls=ls, c=self.color)
+            plt.plot(
+                [10**l for l in lgEdotSorted],
+                densitySorted,
+                marker='None',
+                ls=ls,
+                c=self.color,
+                label=label
+            )
 
-    def plot_dist(self, line=True, star=True, label='None', ls='-', ratio=True):
-        fac = 1 if ratio else self.dist0
+    def plot_dist(self, line=True, star=True, iperiod=0, label='None', ls='-', ratio=True):
+        fac = 1 if ratio else self.dist[iperiod]
         if line:
-            lgEdotSorted, dist0Sorted, dist1Sorted = zip(*sorted(zip(self.lgEdotLine,
-                                                                     self.distPulsar0Line,
-                                                                     self.distPulsar1Line)))
-            plt.plot([10**l for l in lgEdotSorted], [fac * d for d in dist0Sorted],
-                     marker='None', ls=ls, c=self.color, label=label)
+            lgEdotSorted, distSorted = zip(*sorted(zip(
+                self.lgEdotLine,
+                self.distPulsarLine[iperiod]
+            )))
+            plt.plot(
+                [10**l for l in lgEdotSorted],
+                [fac * d for d in distSorted],
+                marker='None',
+                ls=ls,
+                c=self.color,
+                label=label
+            )
 
         if star:
-            plt.plot([10**self.lgEdotMin], [fac * self.distPulsar0Min / self.dist0],
-                     marker='*', ls='None', c=self.color, markersize=12)
+            plt.plot(
+                [10**self.lgEdotMin],
+                [fac * self.distPulsarMin[iperiod] / self.dist[iperiod]],
+                marker='*',
+                ls='None',
+                c=self.color,
+                markersize=12
+            )
 
-    def plot_optical_depth(self, line=True, star=True, label='None', ls='-',
-                           pos0=np.array([1, 1, 1]), Tstar=30e3, Rstar=7.8):
+    def plot_optical_depth(
+        self,
+        pos,
+        line=True,
+        star=True,
+        iperiod=0,
+        label='None',
+        ls='-',
+        Tstar=pars.TSTAR,
+        Rstar=pars.RSTAR
+    ):
 
         if line:
-            lgEdotSorted, dist0Sorted = zip(*sorted(zip(self.lgEdotLine,
-                                                        self.distPulsar0Line)))
-            lgEdotPlot, dist0Plot = list(), list()
+            lgEdotSorted, distSorted = zip(*sorted(zip(
+                self.lgEdotLine,
+                self.distPulsarLine[iperiod]
+            )))
+            lgEdotPlot, distPlot = list(), list()
             for i in range(len(lgEdotSorted)):
                 if i % 5 == 0:
                     lgEdotPlot.append(lgEdotSorted[i])
-                    dist0Plot.append(dist0Sorted[i])
+                    distPlot.append(distSorted[i])
 
             Obs = np.array([0, 0, -1])
             Abs = absorption.Absorption(Tstar=Tstar, Rstar=Rstar)
 
-            tau0 = [Abs.TauGG(en=0.2, obs=Obs, pos=pos0 * self.dist0 * (1 - r) / norm(pos0))
-                    for r in dist0Plot]
-            tau1 = [Abs.TauGG(en=5.0, obs=Obs, pos=pos0 * self.dist0 * (1 - r) / norm(pos0))
-                    for r in dist0Plot]
+            tau = [
+                Abs.TauGG(en=0.2, obs=Obs, pos=pos * self.dist[iperiod] * (1 - r) / norm(pos))
+                for r in distPlot
+            ]
 
-            tau0Min = Abs.TauGG(en=0.2, obs=Obs,
-                                pos=pos0 * (self.dist0 - self.distPulsar0Min) / norm(pos0))
-            tau1Min = Abs.TauGG(en=5.0, obs=Obs,
-                                pos=pos0 * (self.dist0 - self.distPulsar0Min) / norm(pos0))
+            tauMin = Abs.TauGG(
+                en=0.2,
+                obs=Obs,
+                pos=pos * (self.dist[iperiod] - self.distPulsarMin[iperiod]) / norm(pos)
+            )
 
-            plt.plot([10**l for l in lgEdotPlot], tau0,
-                     marker='None', ls=ls, c=self.color, label=label)
-            plt.plot([10**l for l in lgEdotPlot], tau1,
-                     marker='None', ls=ls, c=self.color, label=label)
+            plt.plot(
+                [10**l for l in lgEdotPlot],
+                tau,
+                marker='None',
+                ls=ls,
+                c=self.color,
+                label=label
+            )
 
             if star:
-                plt.plot([10**self.lgEdotMin], [tau0Min],
-                         marker='*', ls='None', c=self.color, markersize=12)
-                plt.plot([10**self.lgEdotMin], [tau1Min],
-                         marker='*', ls='None', c=self.color, markersize=12)
+                plt.plot(
+                    [10**self.lgEdotMin],
+                    [tauMin],
+                    marker='*',
+                    ls='None',
+                    c=self.color,
+                    markersize=12
+                )
 
     def plot_norm(self):
         ax = plt.gca()
@@ -469,6 +551,7 @@ class FitResult(object):
 
     def plot_sed(
         self,
+        iperiod=0,
         period=0,
         best_solution=True,
         Edot=1e36,
@@ -477,92 +560,91 @@ class FitResult(object):
         pos=np.array([1, 1, 1]),
         ls='-',
         label='None',
-        Tstar=30e3,
-        Rstar=7.8,
+        Tstar=pars.TSTAR,
+        Rstar=pars.RSTAR,
         Mdot=3.16e-9,
         Vw=1500,
         emin=0.1,
         ecut=50,
         fast=False
     ):
-        Alpha = np.array([2.58, 2.16])
+        Alpha = pars.ELEC_SPEC_INDEX[period]
 
         Eref = 1 * u.TeV
         Ecut = ecut * u.TeV
         Emax = 20 * u.PeV
         Emin = emin * u.TeV
-        SourceDist = 1.4 * u.kpc
+        SourceDist = pars.SRC_DIST * u.kpc
         n_en = 1 if fast else 2
 
         Obs = np.array([0, 0, -1])
         Abs = absorption.Absorption(Tstar=Tstar, Rstar=Rstar)
 
         if best_solution:
-            b_sed = self.b0Min if period == 0 else self.b1Min
-            norm_sed = self.norm0Min if period == 0 else self.norm1Min
-            dist_sed = self.distPulsar0Min if period == 0 else self.distPulsar1Min
+            b_sed = self.bMin[iperiod]
+            norm_sed = self.normMin[iperiod]
+            dist_sed = self.distPulsarMin[iperiod]
             dist_star = dist - dist_sed
             density_sed = psr.PhotonDensity(Tstar=Tstar, Rstar=Rstar, d=dist_star)
         else:
             idx = np.argmin(np.array([math.fabs(l - math.log10(Edot)) for l in self.lgEdotLine]))
-            b_sed = self.b0Line[idx] if period == 0 else self.b1Line[idx]
-            norm_sed = 10**self.lgNorm0Line[idx] if period == 0 else 10**self.lgNorm1Line[idx]
-            dist_sed = self.distPulsar0Line[idx] if period == 0 else self.distPulsar1Line[idx]
+            b_sed = self.bLine[iperiod][idx]
+            norm_sed = 10**self.lgNormLine[iperiod][idx]
+            dist_sed = self.distPulsarLine[iperiod][idx]
             dist_star = dist * (1 - dist_sed)
             density_sed = psr.PhotonDensity(Tstar=Tstar, Rstar=Rstar, d=dist_star)
 
-        EnergyToPlot = np.concatenate((np.logspace(-0.5, 8.3, n_en * 200),
-                                       np.logspace(8.3, 9.5, n_en * 5))) * u.keV
+        EnergyToPlot = np.logspace(-0.5, 9.6, n_en * 300) * u.keV
 
-        ECPL = ExponentialCutoffPowerLaw(amplitude=norm_sed / u.eV,
-                                         e_0=Eref,
-                                         alpha=Alpha[period],
-                                         e_cutoff=Ecut)
-        # Testing ECBPL
-        # alpha_1 = Alpha[period] - 0.5
-        # alpha_2 = Alpha[period]
+        ECPL = ExponentialCutoffPowerLaw(
+            amplitude=norm_sed / u.eV,
+            e_0=Eref,
+            alpha=Alpha,
+            e_cutoff=Ecut
+        )
 
-        # norm_bpl = norm_sed * pow(Eref / Emin, alpha_2 - alpha_1)
-        # EminFac = 1e-2
-        # ECPL = ExponentialCutoffBrokenPowerLaw(amplitude=norm_bpl / u.eV,
-        #                                        e_0=Eref,
-        #                                        alpha_1=alpha_1,
-        #                                        alpha_2=alpha_2,
-        #                                        e_break=Emin,
-        #                                        e_cutoff=Ecut)
-
-        SYN = Synchrotron(particle_distribution=ECPL,
-                          B=b_sed * u.G,
-                          Eemax=Emax,
-                          Eemin=Emin)
-        IC = InverseCompton(particle_distribution=ECPL,
-                            seed_photon_fields=[['STAR',
-                                                 Tstar * u.K,
-                                                 density_sed * u.erg / u.cm**3,
-                                                 theta_ic * u.deg]],
-                            Eemax=Emax,
-                            Eemin=Emin)
-
-        # tau = [Abs.TauGG(en=e.value * u.keV.to(u.TeV), obs=Obs,
-        #                  pos=pos * dist_star / norm(pos)) for e in EnergyToPlot]
+        SYN = Synchrotron(
+            particle_distribution=ECPL,
+            B=b_sed * u.G,
+            Eemax=Emax,
+            Eemin=Emin
+        )
+        IC = InverseCompton(
+            particle_distribution=ECPL,
+            seed_photon_fields=[[
+                'STAR',
+                Tstar * u.K,
+                density_sed * u.erg / u.cm**3,
+                theta_ic * u.deg
+            ]],
+            Eemax=Emax,
+            Eemin=Emin
+        )
 
         tau = list()
         for e in EnergyToPlot:
             if e.value * u.keV.to(u.TeV) < 1e-2:
                 tau.append(0)
             else:
-                tau.append(Abs.TauGG(en=e.value * u.keV.to(u.TeV), obs=Obs,
-                           pos=pos * dist_star / norm(pos)))
+                tau.append(Abs.TauGG(
+                    en=e.value * u.keV.to(u.TeV),
+                    obs=Obs,
+                    pos=pos * dist_star / norm(pos)
+                ))
 
-        model = (SYN.sed(photon_energy=EnergyToPlot, distance=SourceDist) +
-                 IC.sed(photon_energy=EnergyToPlot, distance=SourceDist))
+        model = (
+            SYN.sed(photon_energy=EnergyToPlot, distance=SourceDist)
+            + IC.sed(photon_energy=EnergyToPlot, distance=SourceDist)
+        )
         model_abs = [math.exp(-t) * m.value for (m, t) in zip(model, tau)]
+
+        EnergyToPlot, model_abs = util.fix_naima_bug(EnergyToPlot, model_abs)
 
         ax = plt.gca()
         ax.plot(EnergyToPlot, model_abs, ls=ls, c=self.color, label=label)
 
         # Integrating spectrum
-        spec = [m.value / e.value / u.keV.to(u.erg) for (m, e) in zip(model, EnergyToPlot)]
-        en = [e.value * u.keV.to(u.erg) for e in EnergyToPlot]
-        L = np.trapz(x=en, y=spec) * 4 * math.pi * (1.4 * u.kpc.to(u.cm))**2
-        print('SED Luminosity = ', L, 'ergs/s')
+        # spec = [m.value / e.value / u.keV.to(u.erg) for (m, e) in zip(model, EnergyToPlot)]
+        # en = [e.value * u.keV.to(u.erg) for e in EnergyToPlot]
+        # L = np.trapz(x=en, y=spec) * 4 * math.pi * (SourceDist * u.kpc.to(u.cm))**2
+        # print('SED Luminosity = ', L, 'ergs/s')

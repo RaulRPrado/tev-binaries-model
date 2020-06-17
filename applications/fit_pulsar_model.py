@@ -31,10 +31,10 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 
 def do_fit(
-    periods,  # [0, 1],
-    ThetaIC,  # np.array([90, 90]),
-    Pos3D,    # [[1, 1, 1], [1, 1, 1]],
-    Dist,     # np.array([2, 2]),
+    periods,   # [0, 1],
+    ThetaIC,   # np.array([90, 90]),
+    Pos3D,     # [[1, 1, 1], [1, 1, 1]],
+    Dist,      # np.array([2, 2]),
     Alpha,     # np.array([2.58, 2.16])
     label='',
     do_abs=True,
@@ -155,7 +155,7 @@ def do_fit(
         Ecut = 50 * u.TeV
         Emax = 20 * u.PeV
         Emin = 10 * u.GeV
-        SourceDist = 1.4 * u.kpc
+        SourceDist = pars. * u.kpc
         EnergyToPlot = np.logspace(-2, 11, 500) * u.keV
 
         ######################
@@ -441,7 +441,7 @@ if __name__ == '__main__':
     # lgSigma_min = math.log10(3e-3)
     # lgSigma_max = math.log10(3e-2)
 
-    periods = [0, 1]
+    periods = [0, 1, 2, 4]
     mjd_pts = [pars.MJD_MEAN[p] for p in periods]
     alphas = [pars.ELEC_SPEC_INDEX[p] for p in periods]
 

@@ -1,17 +1,10 @@
 #!/usr/bin/python3
 
-import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-import itertools
-from scipy.interpolate import make_interp_spline, BSpline
-from scipy import interpolate
-from matplotlib.patches import Polygon
-from matplotlib.collections import PatchCollection
 
 import astropy.units as u
-import astropy.constants as const
 import naima
 from iminuit import Minuit
 from naima.models import (
@@ -22,7 +15,8 @@ from naima.models import (
 )
 
 import tgblib.pulsar as psr
-import tgblib.fit_result as fr
+import tgblib.fit_results as fr
+import tgblib.parameters as pars
 from tgblib import util
 from tgblib import data
 from tgblib import orbit
@@ -31,11 +25,14 @@ from tgblib import orbit
 if __name__ == '__main__':
 
     util.set_my_fonts(mode='talk')
-    small_label = ''
+    # periods = [0, 1, 2, 4]
+    periods = [0, 1]
+    plot_label = '_2data'
+    small_label = '_prev'
     which_orbit = ['ca', 'mo']
     show = False
     band = True
-    fast_sed = True
+    fast_sed = False
     do_solution = True
     do_sed = True
     do_sed_both = False
@@ -43,9 +40,9 @@ if __name__ == '__main__':
     do_density = True
     do_dist = True
     do_opt = True
-    do_ebr = False
-    do_sig = True
-    do_mdot = True
+    do_ebr = False      # no
+    do_sig = False      # no
+    do_mdot = False     # no
 
     label_ca = 'Orbit by Casares et al. 2012'
     label_mo = 'Orbit by Moritani et al. 2018'
@@ -57,44 +54,22 @@ if __name__ == '__main__':
 
     ########
     # Orbits
-    systems_ca = orbit.generate_systems(eccentricity=[0.83],
-                                        phase_per=[0.967],
-                                        inclination=[69.5 * util.degToRad,
-                                                     59 * util.degToRad,
-                                                     80 * util.degToRad],
-                                        omega=[129 * util.degToRad],
-                                        period=[315],
-                                        mjd_0=[54857.5],
-                                        temp_star=[30e3],
-                                        rad_star=[7.8],
-                                        mass_star=[16],
-                                        mass_compact=[1.4],
-                                        f_m=[0.01],
-                                        x1=[0.362])
+    systems_ca = orbit.getCasaresSystem()
+    systems_mo = orbit.getMoritaniSystem()
 
-    systems_mo = orbit.generate_systems(eccentricity=[0.64],
-                                        phase_per=[0.663],
-                                        inclination=[37 * util.degToRad,
-                                                     32 * util.degToRad,
-                                                     42 * util.degToRad],
-                                        omega=[271 * util.degToRad],
-                                        period=[315],
-                                        mjd_0=[54857.5],
-                                        temp_star=[30e3],
-                                        rad_star=[7.8],
-                                        mass_star=[16],
-                                        mass_compact=[1.4],
-                                        f_m=[0.0024],
-                                        x1=[0.120])
-    mjd_pts = [58079, 58101]
-    orbits_ca = orbit.SetOfOrbits(phase_step=0.0005,
-                                  color='r',
-                                  systems=systems_ca,
-                                  mjd_pts=mjd_pts)
-    orbits_mo = orbit.SetOfOrbits(phase_step=0.0005,
-                                  color='b',
-                                  systems=systems_mo,
-                                  mjd_pts=mjd_pts)
+    mjd_pts = mjd_pts = [pars.MJD_MEAN[p] for p in periods]
+    orbits_ca = orbit.SetOfOrbits(
+        phase_step=0.0005,
+        color='r',
+        systems=systems_ca,
+        mjd_pts=mjd_pts
+    )
+    orbits_mo = orbit.SetOfOrbits(
+        phase_step=0.0005,
+        color='b',
+        systems=systems_mo,
+        mjd_pts=mjd_pts
+    )
 
     pts_ca = orbits_ca.get_pts()
     pts_mo = orbits_mo.get_pts()
@@ -107,32 +82,22 @@ if __name__ == '__main__':
 
     #############
     # Fit Results
-    fr_ca = fr.FitResult(label='ca' + small_label,
-                         color='r',
-                         SigmaMax=SigmaMax,
-                         EdotMin=EdotMin)
-    fr_ca_m_inf = fr.FitResult(label='ca_m_inf' + small_label,
-                               color='r',
-                               SigmaMax=SigmaMax,
-                               EdotMin=EdotMin)
-    fr_ca_m_sup = fr.FitResult(label='ca_m_sup' + small_label,
-                               color='r',
-                               SigmaMax=SigmaMax,
-                               EdotMin=EdotMin)
-    fr_mo = fr.FitResult(label='mo' + small_label,
-                         color='b',
-                         SigmaMax=SigmaMax,
-                         EdotMin=EdotMin)
-    fr_mo_m_inf = fr.FitResult(label='mo_m_inf' + small_label,
-                               color='b',
-                               SigmaMax=SigmaMax,
-                               EdotMin=EdotMin)
-    fr_mo_m_sup = fr.FitResult(label='mo_m_sup' + small_label,
-                               color='b',
-                               SigmaMax=SigmaMax,
-                               EdotMin=EdotMin)
+    fr_ca = fr.FitResult(
+        n_periods=len(periods),
+        label='ca' + small_label,
+        color='r',
+        SigmaMax=SigmaMax,
+        EdotMin=EdotMin
+    )
+    fr_mo = fr.FitResult(
+        n_periods=len(periods),
+        label='mo' + small_label,
+        color='b',
+        SigmaMax=SigmaMax,
+        EdotMin=EdotMin
+    )
 
-    xlim, ylim = None, None
+    xlim, ylim = [8e33, 3e38], [1e-3, 1e-1]
 
     def plot_solution():
         # Solution - main
@@ -140,58 +105,74 @@ if __name__ == '__main__':
         fig = plt.gcf()
         ax = plt.gca()
         ax.set_ylabel(r'$\sigma_0$')
-        # ax.set_xlabel(r'$\dot{E}$ [erg s$^{-1}$]')
         ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
         ax.set_yscale('log')
         ax.set_xscale('log')
         ax.tick_params(which='minor', length=minorTickSize)
         ax.tick_params(which='major', length=majorTickSize)
 
-        fr_ca.plot_solution(band=band,
-                            line=True,
-                            ms=40,
-                            with_lines=True,
-                            no_2s=False,
-                            ls='-',
-                            line_ls='--',
-                            label=label_ca)
+        fr_ca.plot_solution(
+            band=band,
+            line=True,
+            ms=40,
+            with_lines=True,
+            no_2s=False,
+            ls='-',
+            line_ls='--',
+            label=label_ca
+        )
 
-        fr_mo.plot_solution(band=band,
-                            line=True,
-                            ms=40,
-                            with_lines=True,
-                            no_2s=False,
-                            ls='-',
-                            line_ls=':',
-                            label=label_mo)
+        fr_mo.plot_solution(
+            band=band,
+            line=True,
+            ms=40,
+            with_lines=True,
+            no_2s=False,
+            ls='-',
+            line_ls=':',
+            label=label_mo
+        )
 
         ax.legend(loc='best', frameon=False)
 
-        ylim = ax.get_ylim()
-        xlim = ax.get_xlim()
-        ylim = [1e-3, 1e-1]
         ax.set_ylim(ylim[0], ylim[1])
+        ax.set_ylim(xlim[0], xlim[1])
 
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitSolutionsBoth.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSolutionsBoth.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitSolutionsBoth' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitSolutionsBoth' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
         # Solution - Casares
         plt.figure(figsize=(8, 6), tight_layout=True)
         fig = plt.gcf()
         ax = plt.gca()
         ax.set_ylabel(r'$\sigma_0$')
-        # ax.set_xlabel(r'$\dot{E}$ [erg s$^{-1}$]')
         ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
         ax.set_yscale('log')
         ax.set_xscale('log')
         ax.tick_params(which='minor', length=minorTickSize)
         ax.tick_params(which='major', length=majorTickSize)
 
-        fr_ca.plot_solution(band=band, line=True, ms=40, with_lines=True, no_2s=False,
-                            ls='-', line_ls='--', label=label_ca)
+        fr_ca.plot_solution(
+            band=band,
+            line=True,
+            ms=40,
+            with_lines=True,
+            no_2s=False,
+            ls='-',
+            line_ls='--',
+            label=label_ca
+        )
 
         if xlim is not None and ylim is not None:
             ax.set_xlim(xlim[0], xlim[1])
@@ -202,23 +183,38 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitSolutionsCa.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSolutionsCa.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitSolutionsCa' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitSolutionsCa' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
         # Solution - Moritani
         plt.figure(figsize=(8, 6), tight_layout=True)
         fig = plt.gcf()
         ax = plt.gca()
         ax.set_ylabel(r'$\sigma_0$')
-        # ax.set_xlabel(r'$\dot{E}$ [erg s$^{-1}$]')
         ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
         ax.set_yscale('log')
         ax.set_xscale('log')
         ax.tick_params(which='minor', length=minorTickSize)
         ax.tick_params(which='major', length=majorTickSize)
 
-        fr_mo.plot_solution(band=band, line=True, ms=40, with_lines=True, no_2s=False,
-                            ls='-', line_ls='--', label=label_mo)
+        fr_mo.plot_solution(
+            band=band,
+            line=True,
+            ms=40,
+            with_lines=True,
+            no_2s=False,
+            ls='-',
+            line_ls='--',
+            label=label_mo
+        )
 
         if xlim is not None and ylim is not None:
             ax.set_xlim(xlim[0], xlim[1])
@@ -229,175 +225,153 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitSolutionsMo.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSolutionsMo.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitSolutionsMo' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitSolutionsMo' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_sed():
         ##############################
         # SED Casares
-        plt.figure(figsize=(16, 6), tight_layout=True)
+        # plt.figure(figsize=(len(periods)*8, 6), tight_layout=True)
 
-        for iper in [0, 1]:
-            plt.subplot(1, 2, iper + 1)
-            fig = plt.gcf()
-            ax = plt.gca()
-            ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
-            ax.set_xlabel(r'$E$ [keV]')
-            ax.set_yscale('log')
-            ax.set_xscale('log')
-            ax.tick_params(which='minor', length=minorTickSize)
-            ax.tick_params(which='major', length=majorTickSize)
+        for orb in ['Ca', 'Mo']:
 
-            data_en, data_fl, data_fl_er = data.get_data(iper, '5sig')
-            fermi_spec_en, fermi_spec_fl, fermi_spec_fl_er = data.get_fermi_spec()
-            fermi_lim_en, fermi_lim_fl, fermi_lim_fl_er = data.get_fermi_upper_limits()
+            plt.figure(figsize=(2 * 8, 2 * 6), tight_layout=True)
+            for iper, per in enumerate(periods):
+                plt.subplot(2, 2, iper + 1)
+                fig = plt.gcf()
+                ax = plt.gca()
+                ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
+                ax.set_xlabel(r'$E$ [keV]')
+                ax.set_yscale('log')
+                ax.set_xscale('log')
+                ax.tick_params(which='minor', length=minorTickSize)
+                ax.tick_params(which='major', length=majorTickSize)
 
-            main_ca = round((10**fr_ca.lgEdotMin) / (10**int(fr_ca.lgEdotMin)), 2)
-            pow_ca = int(fr_ca.lgEdotMin)
+                if orb == 'Ca':
+                    label_main = round((10**fr_ca.lgEdotMin) / (10**int(fr_ca.lgEdotMin)), 2)
+                    label_pow = int(fr_ca.lgEdotMin)
+                    label_sed = (
+                        label_ca + '\n' + r'$L_\mathrm{sd}=$' +
+                        str(label_main) + r'$\;10^{'+str(label_pow) + r'}$' +
+                        r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_ca.lgSigmaMin)
+                    )
+                else:
+                    label_main = round((10**fr_mo.lgEdotMin) / (10**int(fr_mo.lgEdotMin)), 2)
+                    label_pow = int(fr_mo.lgEdotMin)
+                    label_sed = (
+                        label_mo + '\n' + r'$L_\mathrm{sd}=$' +
+                        str(label_main) + r'$\;10^{'+str(label_pow) + r'}$' +
+                        r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_mo.lgSigmaMin)
+                    )
 
-            label_ca_sed = (label_ca + '\n' + r'$L_\mathrm{sd}=$' +
-                            str(main_ca) + r'$\;10^{'+str(pow_ca) + r'}$' +
-                            r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_ca.lgSigmaMin))
-
-            if iper == 0:
-                ax.text(0.05, 0.85, label_ca_sed, transform=ax.transAxes, horizontalalignment='left')
-
-            fr_ca.plot_sed(period=iper,
-                           theta_ic=theta_ic_ca[iper],
-                           dist=dist_ca[iper],
-                           pos=pos_ca[iper],
-                           ls='-',
-                           label=r'$E_\mathrm{min}=0.1$ TeV, $E_\mathrm{cut}=50$ TeV',
-                           emin=0.10,
-                           ecut=50,
-                           fast=fast_sed)
-            fr_ca.plot_sed(period=iper,
-                           theta_ic=theta_ic_ca[iper],
-                           dist=dist_ca[iper],
-                           pos=pos_ca[iper],
-                           ls='--',
-                           label=r'$E_\mathrm{min}=0.2$ TeV, $E_\mathrm{cut}=100$ TeV',
-                           emin=0.20,
-                           ecut=100,
-                           fast=fast_sed)
-
-            ax.errorbar(data_en,
-                        data_fl,
-                        yerr=data_fl_er,
-                        linestyle='None',
-                        color='k',
-                        marker='o')
-
-            # ax.errorbar(fermi_spec_en,
-            #             fermi_spec_fl,
-            #             yerr=fermi_spec_fl_er,
-            #             color='k',
-            #             marker='o',
-            #             ls='None',
-            #             alpha=0.3)
-            # ax.errorbar(fermi_lim_en,
-            #             fermi_lim_fl,
-            #             yerr=fermi_lim_fl_er,
-            #             uplims=True,
-            #             color='k',
-            #             ls='None',
-            #             alpha=0.3)
-
-            ax.set_ylim(2e-14, 7e-11)
-
-            if iper == 1:
-                ax.legend(loc='upper left', frameon=False)
-
-        if show:
-            plt.show()
-        else:
-            plt.savefig('figures/FitSEDCa.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSEDCa.png', format='png', bbox_inches='tight')
-
-        ##############################
-        # SED Moritani
-        plt.figure(figsize=(16, 6), tight_layout=True)
-
-        for iper in [0, 1]:
-            plt.subplot(1, 2, iper + 1)
-            fig = plt.gcf()
-            ax = plt.gca()
-            ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
-            ax.set_xlabel(r'$E$ [keV]')
-            ax.set_yscale('log')
-            ax.set_xscale('log')
-            ax.tick_params(which='minor', length=minorTickSize)
-            ax.tick_params(which='major', length=majorTickSize)
-
-            data_en, data_fl, data_fl_er = data.get_data(iper, '5sig')
-            fermi_spec_en, fermi_spec_fl, fermi_spec_fl_er = data.get_fermi_spec()
-            fermi_lim_en, fermi_lim_fl, fermi_lim_fl_er = data.get_fermi_upper_limits()
-
-            main_mo = round((10**fr_mo.lgEdotMin) / (10**int(fr_mo.lgEdotMin)), 2)
-            pow_mo = int(fr_mo.lgEdotMin)
-
-            label_mo_sed = (label_mo + '\n' + r'$L_\mathrm{sd}=$' +
-                            str(main_mo) + r'$\;10^{'+str(pow_mo) + r'}$' +
-                            r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_mo.lgSigmaMin))
-
-            if iper == 0:
-                ax.text(0.05,
+                if iper == 0:
+                    ax.text(
+                        0.05,
                         0.85,
-                        label_mo_sed,
+                        label_sed,
                         transform=ax.transAxes,
-                        horizontalalignment='left')
+                        horizontalalignment='left'
+                    )
 
-            fr_mo.plot_sed(period=iper,
-                           theta_ic=theta_ic_mo[iper],
-                           dist=dist_mo[iper],
-                           pos=pos_mo[iper],
-                           ls='-',
-                           label=r'$E_\mathrm{min}=0.1$ TeV, $E_\mathrm{cut}=50$ TeV',
-                           emin=0.10,
-                           ecut=50,
-                           fast=fast_sed)
-            fr_mo.plot_sed(period=iper,
-                           theta_ic=theta_ic_mo[iper],
-                           dist=dist_mo[iper],
-                           pos=pos_mo[iper],
-                           ls='--',
-                           label=r'$E_\mathrm{min}=0.2$ TeV, $E_\mathrm{cut}=100$ TeV',
-                           emin=0.20,
-                           ecut=100,
-                           fast=fast_sed)
+                if orb == 'Ca':
+                    fr_ca.plot_sed(
+                        iperiod=iper,
+                        period=per,
+                        theta_ic=theta_ic_ca[iper],
+                        dist=dist_ca[iper],
+                        pos=pos_ca[iper],
+                        ls='-',
+                        label=r'$E_\mathrm{min}=0.1$ TeV, $E_\mathrm{cut}=50$ TeV',
+                        emin=0.10,
+                        ecut=50,
+                        fast=fast_sed
+                    )
+                    # fr_ca.plot_sed(
+                    #     iperiod=iper,
+                    #     period=per,
+                    #     theta_ic=theta_ic_ca[iper],
+                    #     dist=dist_ca[iper],
+                    #     pos=pos_ca[iper],
+                    #     ls='--',
+                    #     label=r'$E_\mathrm{min}=0.2$ TeV, $E_\mathrm{cut}=100$ TeV',
+                    #     emin=0.20,
+                    #     ecut=100,
+                    #     fast=fast_sed
+                    # )
+                else:
+                    fr_mo.plot_sed(
+                        iperiod=iper,
+                        period=per,
+                        theta_ic=theta_ic_mo[iper],
+                        dist=dist_mo[iper],
+                        pos=pos_mo[iper],
+                        ls='-',
+                        label=r'$E_\mathrm{min}=0.1$ TeV, $E_\mathrm{cut}=50$ TeV',
+                        emin=0.10,
+                        ecut=50,
+                        fast=fast_sed
+                    )
+                    # fr_mo.plot_sed(
+                    #     iperiod=iper,
+                    #     period=per,
+                    #     theta_ic=theta_ic_mo[iper],
+                    #     dist=dist_mo[iper],
+                    #     pos=pos_mo[iper],
+                    #     ls='--',
+                    #     label=r'$E_\mathrm{min}=0.2$ TeV, $E_\mathrm{cut}=100$ TeV',
+                    #     emin=0.20,
+                    #     ecut=100,
+                    #     fast=fast_sed
+                    # )
 
-            ax.errorbar(data_en,
-                        data_fl,
-                        yerr=data_fl_er,
-                        linestyle='None',
+                data_en, data_fl, data_fl_er = data.get_data(per)
+                ax.errorbar(
+                    data_en,
+                    data_fl,
+                    yerr=data_fl_er,
+                    linestyle='None',
+                    color='k',
+                    marker='o'
+                )
+
+                data_en_ul, data_fl_ul = data.get_data_ul(per)
+                if len(data_en_ul) > 0:
+                    data_fl_ul_err = [p - pow(10, math.log10(p)-0.1) for p in data_fl_ul]
+                    ax.errorbar(
+                        data_en_ul,
+                        data_fl_ul,
+                        yerr=data_fl_ul_err,
+                        uplims=True,
                         color='k',
-                        marker='o')
+                        linestyle='none'
+                    )
 
-            # ax.errorbar(fermi_spec_en,
-            #             fermi_spec_fl,
-            #             yerr=fermi_spec_fl_er,
-            #             color='k',
-            #             marker='o',
-            #             ls='None',
-            #             alpha=0.3)
-            # ax.errorbar(fermi_lim_en,
-            #             fermi_lim_fl,
-            #             yerr=fermi_lim_fl_er,
-            #             uplims=True,
-            #             color='k',
-            #             ls='None',
-            #             alpha=0.3)
+                ax.set_ylim(2e-14, 7e-11)
 
-            ax.set_ylim(2e-14, 7e-11)
+                if iper == 1:
+                    ax.legend(loc='upper left', frameon=False)
 
-            if iper == 1:
-                ax.legend(loc='upper left', frameon=False)
-
-        if show:
-            plt.show()
-        else:
-            plt.savefig('figures/FitSEDMo.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSEDMo.png', format='png', bbox_inches='tight')
+            if show:
+                plt.show()
+            else:
+                plt.savefig(
+                    'figures/FitSED' + orb + plot_label + '.pdf',
+                    format='pdf',
+                    bbox_inches='tight'
+                )
+                plt.savefig(
+                    'figures/FitSED' + orb + plot_label + '.png',
+                    format='png',
+                    bbox_inches='tight'
+                )
 
     def plot_sed_both():
         ##############################
@@ -460,14 +434,22 @@ if __name__ == '__main__':
 
             ax.set_ylim(2e-14, 1e-10)
 
-            #if iper == 0:
+            # if iper == 0:
             ax.legend(loc='upper left', frameon=False)
 
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitSEDBoth.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSEDBoth.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitSEDBoth' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitSEDBoth' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_mag():
         #################
@@ -476,15 +458,18 @@ if __name__ == '__main__':
         fig = plt.gcf()
         ax = plt.gca()
         ax.set_ylabel(r'$B_0$ [G]')
-        # ax.set_xlabel(r'$\dot{E}$ [erg s$^{-1}$]')
         ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
         ax.set_yscale('log')
         ax.set_xscale('log')
         ax.tick_params(which='minor', length=minorTickSize)
         ax.tick_params(which='major', length=majorTickSize)
 
-        fr_ca.plot_B(line=True, ls='--', label=label_ca)
-        fr_mo.plot_B(line=True, ls=':', label=label_mo)
+        fr_ca.plot_B(line=True, ls='--', label=label_ca, iperiod=0)
+        fr_mo.plot_B(line=True, ls=':', label=label_mo, iperiod=0)
+
+        if len(periods) > 2:
+            fr_ca.plot_B(line=True, ls='-.', iperiod=3)
+            fr_mo.plot_B(line=True, ls='-.', iperiod=3)
 
         if xlim is not None and ylim is not None:
             ax.set_xlim(xlim[0], xlim[1])
@@ -496,8 +481,16 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitBfieldMain.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitBfieldMain.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitBfieldMain' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitBfieldMain' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_density():
         #################
@@ -506,28 +499,33 @@ if __name__ == '__main__':
         fig = plt.gcf()
         ax = plt.gca()
         ax.set_ylabel(r'$U$ [ergs/cm$^3$]')
-        # ax.set_xlabel(r'$\dot{E}$ [erg s$^{-1}$]')
         ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
         ax.set_yscale('log')
         ax.set_xscale('log')
         ax.tick_params(which='minor', length=minorTickSize)
         ax.tick_params(which='major', length=majorTickSize)
 
-        fr_ca.plot_density(line=True, ls='--', label=label_ca)
-        fr_mo.plot_density(line=True, ls=':', label=label_mo)
+        fr_ca.plot_density(line=True, ls='--', label=label_ca, iperiod=0)
+        fr_mo.plot_density(line=True, ls=':', label=label_mo, iperiod=0)
 
         if xlim is not None and ylim is not None:
             ax.set_xlim(xlim[0], xlim[1])
-
-        # ax.set_ylim(0.04, 0.6)
 
         ax.legend(frameon=False)
 
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitDensityMain.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitDensityMain.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitDensityMain' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitDensityMain' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_dist():
         # Distance - main
@@ -535,15 +533,14 @@ if __name__ == '__main__':
         fig = plt.gcf()
         ax = plt.gca()
         ax.set_ylabel(r'$R_\mathrm{sh, 0}$ [AU]')
-        # ax.set_xlabel(r'$\dot{E}$ [erg s$^{-1}$]')
         ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
         ax.set_yscale('log')
         ax.set_xscale('log')
         ax.tick_params(which='minor', length=minorTickSize)
         ax.tick_params(which='major', length=majorTickSize)
 
-        fr_ca.plot_dist(line=True, ls='--', ratio=False)
-        fr_mo.plot_dist(line=True, ls=':', ratio=False)
+        fr_ca.plot_dist(line=True, ls='--', ratio=False, iperiod=0)
+        fr_mo.plot_dist(line=True, ls=':', ratio=False, iperiod=0)
 
         if xlim is not None and ylim is not None:
             ax.set_xlim(xlim[0], xlim[1])
@@ -551,8 +548,16 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitDistanceMain.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitDistanceMain.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitDistanceMain' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitDistanceMain' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_opt():
         # Optical Depth - main
@@ -560,15 +565,14 @@ if __name__ == '__main__':
         fig = plt.gcf()
         ax = plt.gca()
         ax.set_ylabel(r'$\tau_{\gamma\gamma,\;0}$')
-        # ax.set_xlabel(r'$\dot{E}$ [erg s$^{-1}$]')
         ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
         ax.set_yscale('log')
         ax.set_xscale('log')
         ax.tick_params(which='minor', length=minorTickSize)
         ax.tick_params(which='major', length=7)
 
-        fr_ca.plot_optical_depth(line=True, ls='--', pos0=pos_ca[0])
-        fr_mo.plot_optical_depth(line=True, ls=':', pos0=pos_mo[0])
+        fr_ca.plot_optical_depth(line=True, ls='--', pos=pos_ca[0], iperiod=0)
+        fr_mo.plot_optical_depth(line=True, ls=':', pos=pos_mo[0], iperiod=0)
 
         if xlim is not None and ylim is not None:
             ax.set_xlim(xlim[0], xlim[1])
@@ -579,8 +583,16 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitOpticalDepthMain.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitOpticalDepthMain.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitOpticalDepthMain' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitOpticalDepthMain' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_ebreak():
         # E break - main
@@ -606,8 +618,16 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitEbreak.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitEbreak.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitEbreak' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitEbreak' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_sig():
         plt.figure(figsize=(8, 6), tight_layout=True)
@@ -698,8 +718,8 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitMagnetization.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitMagnetization.png', format='png', bbox_inches='tight')
+            plt.savefig('figures/FitMagnetization' + plot_label + '.pdf', format='pdf', bbox_inches='tight')
+            plt.savefig('figures/FitMagnetization' + plot_label + '.png', format='png', bbox_inches='tight')
 
     def plot_mdot():
         ###########################################
@@ -729,8 +749,8 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitSolutionsCasaresMdot.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSolutionsCasaresMdot.png', format='png', bbox_inches='tight')
+            plt.savefig('figures/FitSolutionsCasaresMdot' + plot_label + '.pdf', format='pdf', bbox_inches='tight')
+            plt.savefig('figures/FitSolutionsCasaresMdot' + plot_label + '.png', format='png', bbox_inches='tight')
 
         # Solution - uncertainties m - Moritani
         plt.figure(figsize=(8, 6), tight_layout=True)
@@ -756,8 +776,8 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitSolutionsMoritaniMdot.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSolutionsMoritaniMdot.png', format='png', bbox_inches='tight')
+            plt.savefig('figures/FitSolutionsMoritaniMdot' + plot_label + '.pdf', format='pdf', bbox_inches='tight')
+            plt.savefig('figures/FitSolutionsMoritaniMdot' + plot_label + '.png', format='png', bbox_inches='tight')
 
     if do_solution:
         plot_solution()

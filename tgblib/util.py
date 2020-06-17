@@ -64,3 +64,23 @@ def get_emin_fit(en):
 
 def get_emax_fit(en):
     return 10**(math.log10(en[-1]) + (math.log10(en[-1]) - math.log10(en[-2])) / 2)
+
+
+def fix_naima_bug(energy, model, bin_size=0.1):
+    ''' Fixing Naima bug at high energy buy smoothing the model out '''
+    lge_bins = np.linspace(-1, 14, (14 + 1) * 10 + 1)
+
+    new_energy, new_model = list(), list()
+    for i in range(len(lge_bins) - 1):
+        en = 10**((lge_bins[i] + lge_bins[i + 1]) * 0.5)
+        collected_model = list()
+        for (e, m) in zip(energy, model):
+            if math.log10(e.value) > lge_bins[i + 1] or math.log10(e.value) < lge_bins[i]:
+                continue
+            collected_model.append(m)
+        if len(collected_model) == 0:
+            continue
+        new_energy.append(en)
+        new_model.append(np.mean(collected_model))
+
+    return new_energy, new_model
