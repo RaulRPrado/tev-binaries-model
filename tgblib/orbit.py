@@ -652,7 +652,7 @@ def getMoritaniSystem():
     return generate_systems(
         eccentricity=[0.64],
         phase_per=[0.663],
-        inclination=[63.7 * util.degToRad],
+        inclination=[37 * util.degToRad],
         omega=[271 * util.degToRad],
         period=[pars.TPER],
         mjd_0=[pars.MJD_0],

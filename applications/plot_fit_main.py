@@ -25,18 +25,21 @@ from tgblib import orbit
 if __name__ == '__main__':
 
     util.set_my_fonts(mode='talk')
+    # periods = [0, 1, 2, 4]
+    periods = [0, 1]
+    plot_label = '_2data'
     small_label = '_prev'
     which_orbit = ['ca', 'mo']
-    show = True
+    show = False
     band = True
-    fast_sed = True
-    do_solution = False
+    fast_sed = False
+    do_solution = True
     do_sed = True
     do_sed_both = False
-    do_mag = False
-    do_density = False
-    do_dist = False
-    do_opt = False
+    do_mag = True
+    do_density = True
+    do_dist = True
+    do_opt = True
     do_ebr = False      # no
     do_sig = False      # no
     do_mdot = False     # no
@@ -54,8 +57,6 @@ if __name__ == '__main__':
     systems_ca = orbit.getCasaresSystem()
     systems_mo = orbit.getMoritaniSystem()
 
-    # periods = [0, 1, 2, 4]
-    periods = [0, 1]
     mjd_pts = mjd_pts = [pars.MJD_MEAN[p] for p in periods]
     orbits_ca = orbit.SetOfOrbits(
         phase_step=0.0005,
@@ -96,7 +97,7 @@ if __name__ == '__main__':
         EdotMin=EdotMin
     )
 
-    xlim, ylim = None, None
+    xlim, ylim = [8e33, 3e38], [1e-3, 1e-1]
 
     def plot_solution():
         # Solution - main
@@ -134,16 +135,22 @@ if __name__ == '__main__':
 
         ax.legend(loc='best', frameon=False)
 
-        ylim = ax.get_ylim()
-        xlim = ax.get_xlim()
-        ylim = [1e-3, 1e-1]
         ax.set_ylim(ylim[0], ylim[1])
+        ax.set_ylim(xlim[0], xlim[1])
 
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitSolutionsBoth.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSolutionsBoth.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitSolutionsBoth' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitSolutionsBoth' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
         # Solution - Casares
         plt.figure(figsize=(8, 6), tight_layout=True)
@@ -176,8 +183,16 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitSolutionsCa.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSolutionsCa.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitSolutionsCa' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitSolutionsCa' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
         # Solution - Moritani
         plt.figure(figsize=(8, 6), tight_layout=True)
@@ -210,15 +225,23 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitSolutionsMo.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSolutionsMo.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitSolutionsMo' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitSolutionsMo' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_sed():
         ##############################
         # SED Casares
         # plt.figure(figsize=(len(periods)*8, 6), tight_layout=True)
 
-        for orb in ['Mo']:
+        for orb in ['Ca', 'Mo']:
 
             plt.figure(figsize=(2 * 8, 2 * 6), tight_layout=True)
             for iper, per in enumerate(periods):
@@ -339,8 +362,16 @@ if __name__ == '__main__':
             if show:
                 plt.show()
             else:
-                plt.savefig('figures/FitSED' + orb + '.pdf', format='pdf', bbox_inches='tight')
-                plt.savefig('figures/FitSED' + orb + '.png', format='png', bbox_inches='tight')
+                plt.savefig(
+                    'figures/FitSED' + orb + plot_label + '.pdf',
+                    format='pdf',
+                    bbox_inches='tight'
+                )
+                plt.savefig(
+                    'figures/FitSED' + orb + plot_label + '.png',
+                    format='png',
+                    bbox_inches='tight'
+                )
 
     def plot_sed_both():
         ##############################
@@ -409,8 +440,16 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitSEDBoth.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSEDBoth.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitSEDBoth' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitSEDBoth' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_mag():
         #################
@@ -428,8 +467,9 @@ if __name__ == '__main__':
         fr_ca.plot_B(line=True, ls='--', label=label_ca, iperiod=0)
         fr_mo.plot_B(line=True, ls=':', label=label_mo, iperiod=0)
 
-        fr_ca.plot_B(line=True, ls='-.', iperiod=3)
-        fr_mo.plot_B(line=True, ls='-.', iperiod=3)
+        if len(periods) > 2:
+            fr_ca.plot_B(line=True, ls='-.', iperiod=3)
+            fr_mo.plot_B(line=True, ls='-.', iperiod=3)
 
         if xlim is not None and ylim is not None:
             ax.set_xlim(xlim[0], xlim[1])
@@ -441,8 +481,16 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitBfieldMain.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitBfieldMain.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitBfieldMain' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitBfieldMain' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_density():
         #################
@@ -468,8 +516,16 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitDensityMain.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitDensityMain.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitDensityMain' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitDensityMain' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_dist():
         # Distance - main
@@ -492,8 +548,16 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitDistanceMain.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitDistanceMain.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitDistanceMain' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitDistanceMain' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_opt():
         # Optical Depth - main
@@ -519,8 +583,16 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitOpticalDepthMain.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitOpticalDepthMain.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitOpticalDepthMain' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitOpticalDepthMain' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_ebreak():
         # E break - main
@@ -546,8 +618,16 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitEbreak.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitEbreak.png', format='png', bbox_inches='tight')
+            plt.savefig(
+                'figures/FitEbreak' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitEbreak' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
 
     def plot_sig():
         plt.figure(figsize=(8, 6), tight_layout=True)
@@ -638,8 +718,8 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitMagnetization.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitMagnetization.png', format='png', bbox_inches='tight')
+            plt.savefig('figures/FitMagnetization' + plot_label + '.pdf', format='pdf', bbox_inches='tight')
+            plt.savefig('figures/FitMagnetization' + plot_label + '.png', format='png', bbox_inches='tight')
 
     def plot_mdot():
         ###########################################
@@ -669,8 +749,8 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitSolutionsCasaresMdot.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSolutionsCasaresMdot.png', format='png', bbox_inches='tight')
+            plt.savefig('figures/FitSolutionsCasaresMdot' + plot_label + '.pdf', format='pdf', bbox_inches='tight')
+            plt.savefig('figures/FitSolutionsCasaresMdot' + plot_label + '.png', format='png', bbox_inches='tight')
 
         # Solution - uncertainties m - Moritani
         plt.figure(figsize=(8, 6), tight_layout=True)
@@ -696,8 +776,8 @@ if __name__ == '__main__':
         if show:
             plt.show()
         else:
-            plt.savefig('figures/FitSolutionsMoritaniMdot.pdf', format='pdf', bbox_inches='tight')
-            plt.savefig('figures/FitSolutionsMoritaniMdot.png', format='png', bbox_inches='tight')
+            plt.savefig('figures/FitSolutionsMoritaniMdot' + plot_label + '.pdf', format='pdf', bbox_inches='tight')
+            plt.savefig('figures/FitSolutionsMoritaniMdot' + plot_label + '.png', format='png', bbox_inches='tight')
 
     if do_solution:
         plot_solution()

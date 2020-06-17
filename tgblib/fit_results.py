@@ -594,7 +594,7 @@ class FitResult(object):
             dist_star = dist * (1 - dist_sed)
             density_sed = psr.PhotonDensity(Tstar=Tstar, Rstar=Rstar, d=dist_star)
 
-        EnergyToPlot = np.logspace(-0.5, 9.6, n_en * 200) * u.keV
+        EnergyToPlot = np.logspace(-0.5, 9.6, n_en * 300) * u.keV
 
         ECPL = ExponentialCutoffPowerLaw(
             amplitude=norm_sed / u.eV,
