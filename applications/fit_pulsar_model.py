@@ -441,7 +441,7 @@ if __name__ == '__main__':
     # lgSigma_min = math.log10(3e-3)
     # lgSigma_max = math.log10(3e-2)
 
-    periods = [0, 1, 2, 4]
+    periods = [0, 1]
     mjd_pts = [pars.MJD_MEAN[p] for p in periods]
     alphas = [pars.ELEC_SPEC_INDEX[p] for p in periods]
 
