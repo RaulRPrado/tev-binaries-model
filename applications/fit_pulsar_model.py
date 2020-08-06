@@ -155,7 +155,7 @@ def do_fit(
         Ecut = 50 * u.TeV
         Emax = 20 * u.PeV
         Emin = 10 * u.GeV
-        SourceDist = pars. * u.kpc
+        SourceDist = pars.SRC_DIST * u.kpc
         EnergyToPlot = np.logspace(-2, 11, 500) * u.keV
 
         ######################
