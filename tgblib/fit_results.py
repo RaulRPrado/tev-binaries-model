@@ -623,7 +623,7 @@ class FitResult(object):
 
         tau = list()
         for e in EnergyToPlot:
-            if e.value * u.keV.to(u.TeV) < 1e-2:
+            if e.value * u.keV.to(u.TeV) < 1e-4:
                 tau.append(0)
             else:
                 tau.append(Abs.TauGG(

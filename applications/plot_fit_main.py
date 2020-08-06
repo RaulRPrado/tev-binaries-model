@@ -25,10 +25,10 @@ from tgblib import orbit
 if __name__ == '__main__':
 
     util.set_my_fonts(mode='talk')
-    # periods = [0, 1, 2, 4]
-    periods = [0, 1]
-    plot_label = '_2data'
-    small_label = '_prev'
+    periods = [0, 1, 2, 4]
+    # periods = [0, 1]
+    plot_label = '_4data_T317'
+    small_label = '_p_sup'
     which_orbit = ['ca', 'mo']
     show = False
     band = True
