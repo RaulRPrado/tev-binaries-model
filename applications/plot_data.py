@@ -117,47 +117,48 @@ if __name__ == '__main__':
                 sf = SpectrumFit(energy=vtsEnergy, spec=vtsFlux, specErr=vtsFluxErr)
 
                 # sf.fit_power_law(Emin=util.get_emin_fit(vtsEnergy), Emax=util.get_emax_fit(vtsEnergy))
-                sf.fit_power_law(Emin=0.2e9, Emax=3e9)
                 sf.plot_data(color='k', marker='o', linestyle='None')
-                sf.plot_fit(color='k', linestyle='-', linewidth=1.5)
-                sf.plot_fit_unc(nocor=True, color='k', linestyle='None', alpha=0.2)
+                if len(vtsEnergy) > 1:
+                    sf.fit_power_law(Emin=0.2e9, Emax=3e9)
+                    sf.plot_fit(color='k', linestyle='-', linewidth=1.5)
+                    sf.plot_fit_unc(nocor=True, color='k', linestyle='None', alpha=0.2)
 
-                flux_box = sf.flux / 1e-12
-                flux_err_box = sf.fluxErr / 1e-12
+                    flux_box = sf.flux / 1e-12
+                    flux_err_box = sf.fluxErr / 1e-12
 
-                flux_text = (
-                    r'$F_\mathrm{0.2-3 TeV}$ = ' + '({:.2f}'.format(flux_box) + r'$\pm$'
-                    + '{:.2f}'.format(flux_err_box) + r') $10^{12}$ erg s$^{-1}$'
-                )
-                slope_text = (
-                    r'$\Gamma$ = ' + '{:.2f}'.format(sf.gamma) + r'$\pm$'
-                    + '{:.2f}'.format(sf.gammaErr)
-                )
+                    flux_text = (
+                        r'$F_\mathrm{0.2-3 TeV}$ = ' + '({:.2f}'.format(flux_box) + r'$\pm$'
+                        + '{:.2f}'.format(flux_err_box) + r') $10^{12}$ erg s$^{-1}$'
+                    )
+                    slope_text = (
+                        r'$\Gamma$ = ' + '{:.2f}'.format(sf.gamma) + r'$\pm$'
+                        + '{:.2f}'.format(sf.gammaErr)
+                    )
 
-                ax.text(
-                    0.07,
-                    0.12,
-                    flux_text,
-                    transform=ax.transAxes
-                )
-                ax.text(
-                    0.07,
-                    0.05,
-                    slope_text,
-                    transform=ax.transAxes
-                )
+                    ax.text(
+                        0.07,
+                        0.12,
+                        flux_text,
+                        transform=ax.transAxes
+                    )
+                    ax.text(
+                        0.07,
+                        0.05,
+                        slope_text,
+                        transform=ax.transAxes
+                    )
 
-                # Normalization - Gernot's question Jan2020
-                N = sf.get_norm(e=1e9)  # in erg cm-2 s-1
-                print('Norm (1 TeV) = {}'.format(N))
+                    # Normalization - Gernot's question Jan2020
+                    N = sf.get_norm(e=1e9)  # in erg cm-2 s-1
+                    print('Norm (1 TeV) = {}'.format(N))
 
-                # erg->TeV convertion
-                convEn = u.erg.to(u.TeV)
+                    # erg->TeV convertion
+                    convEn = u.erg.to(u.TeV)
 
-                # f = dN/dE
-                f = N / (1 / convEn)**2  # in erg-1 cm-2 s-1
-                print('dN/dE (1 TeV) = {} [erg-1 cm-2 s-1]'.format(f))
-                print('dN/dE (1 TeV) = {} [TeV-1 cm-2 s-1]'.format(f / convEn))
+                    # f = dN/dE
+                    f = N / (1 / convEn)**2  # in erg-1 cm-2 s-1
+                    print('dN/dE (1 TeV) = {} [erg-1 cm-2 s-1]'.format(f))
+                    print('dN/dE (1 TeV) = {} [TeV-1 cm-2 s-1]'.format(f / convEn))
 
             # UPPER LIMITS
             if len(vtsEnergyUL) > 0:

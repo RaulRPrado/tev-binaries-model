@@ -13,20 +13,20 @@ if __name__ == '__main__':
 
     util.set_my_fonts(mode='text')
     show = False
-    label = '_p317'
+    label = '_p315'
 
     periods = [0, 1, 2, 3, 4]
 
-    Tper = 317
+    Tper = 315
 
     mjd_pts = [MJD_MEAN[p] for p in periods]
     markers = ['o', '*', '^', 's', 'D']
-    fillstyle = ['full', 'full', 'none', 'none', 'full']
+    fillstyle = ['full', 'full', 'full', 'none', 'full']
 
     extra_label = {
         0: '',
         1: '',
-        2: ' (only NuSTAR)',
+        2: '',
         3: ' (only VTS)',
         4: ''
     }
