@@ -665,6 +665,57 @@ def getMoritaniSystem():
     )
 
 
+def getLS5039SystemSarty11():
+    return generate_systems(
+        eccentricity=[0.24],
+        phase_per=[0],
+        inclination=[60 * util.degToRad],
+        omega=[237.3 * util.degToRad],
+        period=[pars.TPER_LS],
+        mjd_0=[5017.08],
+        temp_star=[pars.TSTAR_LS],
+        rad_star=[pars.RSTAR_LS],
+        mass_star=[pars.MSTAR_LS],
+        mass_compact=[1.8],
+        f_m=[0.0049],
+        x1=[1.77]
+    )
+
+
+def getLS5039SystemCasares05():
+    return generate_systems(
+        eccentricity=[0.35],
+        phase_per=[0],
+        inclination=[24.9 * util.degToRad],
+        omega=[225.8 * util.degToRad],
+        period=[pars.TPER_LS],
+        mjd_0=[1943.09],
+        temp_star=[pars.TSTAR_LS],
+        rad_star=[pars.RSTAR_LS],
+        mass_star=[pars.MSTAR_LS],
+        mass_compact=[1.4],
+        f_m=[0.0053],
+        x1=[1.82]
+    )
+
+
+def getLS5039SystemAragona09():
+    return generate_systems(
+        eccentricity=[0.34],
+        phase_per=[0],
+        inclination=[37 * util.degToRad],
+        omega=[236.0 * util.degToRad],
+        period=[pars.TPER_LS],
+        mjd_0=[2825.99],
+        temp_star=[pars.TSTAR_LS],
+        rad_star=[pars.RSTAR_LS],
+        mass_star=[pars.MSTAR_LS],
+        mass_compact=[1.4],
+        f_m=[0.0026],
+        x1=[1.44]
+    )
+
+
 if __name__ == '__main__':
 
     # systems_ca = generate_systems(eccentricity=[0.83, 0.75, 0.91],

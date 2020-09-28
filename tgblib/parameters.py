@@ -36,3 +36,15 @@ ELEC_SPEC_INDEX = {
     3: 2.000,  # dummy
     4: 2.718
 }
+
+# LS 5039
+
+TPER_LS = 3.906  # days
+
+TSTAR_LS = 4e4  # K
+
+MSTAR_LS = 26  # Msun
+
+RSTAR_LS = 9.3  # Rsun
+
+SRC_DIST_LS = 2.5  # kpc
