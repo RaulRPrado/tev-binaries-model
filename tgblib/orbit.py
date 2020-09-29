@@ -5,6 +5,7 @@ import numpy as np
 import math
 import itertools
 import logging
+import copy
 from numpy import arccos
 from numpy.linalg import norm
 
@@ -48,7 +49,8 @@ class SetOfOrbits:
         color='b',
         systems=None,
         mjd_pts=None,
-        mjd_ph_0=None
+        mjd_ph_0=None,
+        phases=None
     ):
         self.sys = systems if isinstance(systems, list) else [systems]
         self.mjd_ph_0 = mjd_ph_0
@@ -59,11 +61,18 @@ class SetOfOrbits:
             o = Orbit(s, phase_step=phase_step)
             if mjd_pts is not None:
                 o.set_points(mjd_pts=mjd_pts)
+            elif phases is not None:
+                o.set_points(phase=phases)
             self.orbits.append(o)
             if s.is_ref:
                 self.orbit_ref = o
 
+        # if mjd_pts is not None:
         self.compute_mjd_phase()
+        # elif phases is not None:
+        #     self.mjd_phase = copy.copy(phases)
+        # else:
+        #     pass
 
         self.phase_band, self.distance_band_hi, self.distance_band_lo = list(), list(), list()
         self.theta_band_hi, self.theta_band_lo = list(), list()
@@ -562,7 +571,10 @@ class Orbit:
                 ph -= int(ph)
                 self.phase_pts = np.append(self.phase_pts, ph)
         elif phase is not None:
-            self.phase_pts = [phase] if not isinstance(phase, list) else phase
+            try:
+                self.phase_pts = list(phase)
+            except:
+                self.phase_pts = [phase]
             self.n_pts = len(self.phase_pts)
         else:
             return
@@ -678,7 +690,7 @@ def getLS5039SystemSarty11():
         mass_star=[pars.MSTAR_LS],
         mass_compact=[1.8],
         f_m=[0.0049],
-        x1=[1.77]
+        x1=[0.008231]
     )
 
 
@@ -695,7 +707,7 @@ def getLS5039SystemCasares05():
         mass_star=[pars.MSTAR_LS],
         mass_compact=[1.4],
         f_m=[0.0053],
-        x1=[1.82]
+        x1=[0.008464]
     )
 
 
@@ -712,7 +724,7 @@ def getLS5039SystemAragona09():
         mass_star=[pars.MSTAR_LS],
         mass_compact=[1.4],
         f_m=[0.0026],
-        x1=[1.44]
+        x1=[0.0066967]
     )
 
 
