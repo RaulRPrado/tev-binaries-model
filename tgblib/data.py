@@ -10,6 +10,33 @@ from astropy.io import ascii
 from tgblib import util
 
 
+def get_data_ls5039(which=None):
+    '''
+    Get light curve data.
+
+    Returns
+    -------
+    phase, flux, flux_err, gamma, gamma_err
+    '''
+
+    if which.lower() == "hess":
+        data = ascii.read('data/LS5039_HESS.csv', format='basic')
+    elif which.lower() == "suzaku":
+        data = ascii.read('data/LS5039_SUZAKU.csv', format='basic')
+    else:
+        logging.error('Invalid requested data')
+        return None
+
+    phase = list()
+    for p0, p1 in zip(data['phase0'], data['phase1']):
+        phase.append((p0 + p1) / 2.)
+
+    if which.lower() == "hess":
+        return phase, data['n'], data['n_err'], data['gamma'], data['gamma_err']
+    else:
+        return phase, data['flux'], data['flux_err'], data['gamma'], data['gamma_err']
+
+
 def get_data(period, onlyNuSTAR=False, onlyVTS=False):
     '''
     Get data for a given period.
