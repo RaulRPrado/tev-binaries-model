@@ -48,3 +48,7 @@ MSTAR_LS = 26  # Msun
 RSTAR_LS = 9.3  # Rsun
 
 SRC_DIST_LS = 2.5  # kpc
+
+MDOT_LS = 1e-7
+
+VW_LS = 1000
