@@ -33,6 +33,127 @@ from tgblib import orbit
 logging.getLogger().setLevel(logging.INFO)
 
 
+def getSuzakuFlux(sed, energy):
+    flux = 0
+    for ii in range(len(sed) - 1):
+        en = 0.5 * (energy[ii] + energy[ii + 1])
+        delta = energy[ii + 1] - energy[ii]
+        mean = (sed[ii] + sed[ii + 1]) / en
+        flux += delta * mean
+    return flux
+
+
+def getHESSFluxAndGamma(sed, energy):
+    sedUnit = [(s / ((e * u.keV)**2)).to(1/(u.TeV * u.cm * u.cm * u.s)) for (s, e) in zip(sed, energy)]
+
+    nSum, gSum = 0, 0
+    for ii in range(len(energy) - 1):
+        g = - math.log(sedUnit[ii]/sedUnit[ii+1]) / math.log(energy[ii]/energy[ii+1])
+        n = sedUnit[ii] * math.pow(energy[ii] * u.keV.to(u.TeV), -g)
+        nSum += n
+        gSum += g
+    nMean = nSum / (len(energy) - 1)
+    gMean = gSum / (len(energy) - 1)
+    return nMean, gMean
+
+
+def plotResults(**kwargs):
+    # Plotting
+    if 'phaseData' not in kwargs.keys():
+        logging.error('No phaseData to plot')
+        return
+
+    # Norm
+    # if 'nFit' in kwargs.keys():
+    #     plt.figure(figsize=(8, 6))
+    #     ax = plt.gca()
+    #     ax.plot(kwargs['phaseData'], kwargs['nFit'], color='r', linestyle='none', marker='*')
+    #     plt.show()
+
+    # Flux SUZAKU
+    if 'fluxSuzaku' in kwargs.keys() and 'fluxFitSuzaku' in kwargs.keys():
+        plt.figure(figsize=(8, 6))
+        ax = plt.gca()
+        ax.plot(
+            kwargs['phaseData'],
+            [f.value * 1e12 for f in kwargs['fluxFitSuzaku']],
+            color='r',
+            linestyle='none',
+            marker='*'
+        )
+        ax.errorbar(
+            kwargs['phaseData'],
+            kwargs['fluxSuzaku'],
+            yerr=kwargs['fluxErrSuzaku'],
+            color='k',
+            linestyle='none',
+            marker='o',
+            fillstyle='none'
+        )
+        plt.show()
+
+    # Flux HESS
+    if 'fluxHESS' in kwargs.keys() and 'fluxFitHESS' in kwargs.keys():
+        plt.figure(figsize=(8, 6))
+        ax = plt.gca()
+        ax.plot(
+            kwargs['phaseData'],
+            [f.value * 1e12 for f in kwargs['fluxFitHESS']],
+            color='r',
+            linestyle='none',
+            marker='*'
+        )
+        ax.errorbar(
+            kwargs['phaseData'],
+            kwargs['fluxHESS'],
+            yerr=kwargs['fluxErrHESS'],
+            color='k',
+            linestyle='none',
+            marker='o',
+            fillstyle='none'
+        )
+        plt.show()
+
+    # Gamma HESS
+    if 'gammaHESS' in kwargs.keys() and 'gammaFitHESS' in kwargs.keys():
+        plt.figure(figsize=(8, 6))
+        ax = plt.gca()
+        ax.plot(
+            kwargs['phaseData'],
+            kwargs['gammaFitHESS'],
+            color='r',
+            linestyle='none',
+            marker='*'
+        )
+        ax.errorbar(
+            kwargs['phaseData'],
+            kwargs['gammaHESS'],
+            yerr=kwargs['gammaErrHESS'],
+            color='k',
+            linestyle='none',
+            marker='o',
+            fillstyle='none'
+        )
+        plt.show()
+
+    # Plotting SED
+    if 'modelAll' in kwargs.keys() and 'energyAll' in kwargs.keys():
+        whichPhase = 7
+        thisModel = [(kwargs['nFit'][whichPhase] / 1e20) * m for m in kwargs['modelAll'][whichPhase]]
+
+        sedHESS = [f for (f, e) in zip(thisModel, kwargs['energyAll']) if e > 1e3]
+        energyHESS = [e for e in kwargs['energyAll'] if e > 1e3]
+
+        plt.figure(figsize=(8, 6))
+        ax = plt.gca()
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        ax.plot(energyHESS, [f.value * 1e12 for f in sedHESS], color='r', linestyle='-', marker='*')
+        measuredSED = [e*e*kwargs['fluxHESS'][whichPhase]*(e**(-kwargs['gammaHESS'][whichPhase])) for e in [e * 1e-9 for e in energyHESS]]
+        ax.plot(energyHESS, measuredSED, color='b', linestyle='-')
+        plt.show()
+
+
 def do_fit(
     ThetaIC,   # np.array([90, 90]),
     Pos3D,     # [[1, 1, 1], [1, 1, 1]],
@@ -72,12 +193,12 @@ def do_fit(
     logging.debug(energyAll)
 
     # Loading grid
-    NEdot = (lgEdot_max - lgEdot_min) * lgEdot_bins
-    NSigma = (lgSigma_max - lgSigma_min) * lgSigma_bins
+    NEdot = int((lgEdot_max - lgEdot_min) * lgEdot_bins)
+    NSigma = int((lgSigma_max - lgSigma_min) * lgSigma_bins)
     Edot_list = np.logspace(lgEdot_min, lgEdot_max, int(NEdot))
     Sigma_list = np.logspace(lgSigma_min, lgSigma_max, int(NSigma))
 
-    logging.info('{} iterations'.format(NEdot * NSigma))
+    logging.info('{} iterations'.format(len(Edot_list) * len(Sigma_list)))
 
     if (
         len(ThetaIC) != len(phaseData)
@@ -115,7 +236,9 @@ def do_fit(
                     tt[i] = list()
                 Tau.append(tt)
 
-            DistFrac = np.linspace(0.01, 1, 15)
+            DistFrac = np.concatenate(
+                (np.linspace(0.005, 0.2, 20), np.linspace(0.201, 1.0, 10))
+            )
 
             for ff in DistFrac:
                 for iph in range(len(phaseData)):
@@ -137,15 +260,15 @@ def do_fit(
             with open('abs_pars.json', 'w') as file:
                 json.dump(absToSave, file)
 
-        # Ploting tau vs dist
+        # # Ploting tau vs dist
         # plt.figure(figsize=(8, 6), tight_layout=True)
         # ax = plt.gca()
         # ax.set_yscale('log')
         # ax.set_ylabel(r'$\tau_{\gamma \gamma}$')
         # ax.set_xlabel(r'$D$ [AU]')
 
-        # ax.plot(DistTau[2], Tau[2][str(5)], marker='o', linestyle='-')
-        # ax.plot(DistTau[2], Tau[2][str(13)], marker='o', linestyle='-')
+        # ax.plot(DistTau[7], Tau[7][str(5)], marker='o', linestyle='-')
+        # ax.plot(DistTau[7], Tau[7][str(13)], marker='o', linestyle='-')
         # plt.show()
 
     chisqMin = 1e10
@@ -154,7 +277,7 @@ def do_fit(
 
     for (Edot, Sigma) in itertools.product(Edot_list, Sigma_list):
 
-        logging.debug('Starting Edot={}, Sigma={}'.format(Edot, Sigma))
+        print('Starting Edot={}, Sigma={}'.format(Edot, Sigma))
 
         # Computed parameters
         DistPulsar = [psr.Rshock(Edot=Edot, Mdot=Mdot, Vw=Vw, D=d) for d in Dist]
@@ -163,6 +286,15 @@ def do_fit(
         SigmaShock = [Sigma * f for f in SigmaFac]
         Bfield = [psr.B2_KC(Edot=Edot, Rs=dp, sigma=s) for (dp, s) in zip(DistPulsar, SigmaShock)]
         Density = [psr.PhotonDensity(Tstar=Tstar, Rstar=Rstar, d=d) for d in DistStar]
+
+        # plt.figure(figsize=(8, 6), tight_layout=True)
+        # ax = plt.gca()
+        # ax.set_yscale('log')
+        # ax.set_ylabel(r'$\tau_{\gamma \gamma}$')
+        # ax.set_xlabel(r'$D$ [AU]')
+
+        # ax.plot(DistPulsar, SigmaShock, marker='o', linestyle='-')
+        # plt.show()
 
         # logging.debug('DistPulsar')
         # logging.debug(DistPulsar)
@@ -187,7 +319,7 @@ def do_fit(
         npar = len(phaseData)
 
         # Further parameters
-        Ecut = [rad.Emax(b, 0.05) * u.TeV for b in Bfield]
+        Ecut = [rad.Emax(b, 1) * u.TeV for b in Bfield]
         Eref = 1 * u.TeV
         Emax = 100 * u.PeV
         Emin = 10 * u.GeV
@@ -195,20 +327,15 @@ def do_fit(
 
         # Computing Alpha
         Alpha = [2 * g - 1 for g in gammaSuzaku]
-        # logging.debug('Alpha')
-        # logging.debug(Alpha)
-        # logging.debug('gamma')
-        # logging.debug(gammaSuzaku)
+        # print('Alpha')
+        # print(Alpha)
+        # print('gamma')
+        # print(gammaSuzaku)
 
         # Computing Model
         tau = list()
         modelAll = list()
         for iph in range(len(phaseData)):
-
-            # en, fl, fl_er = data.get_data(ii)
-            # data_en.append(en)
-            # data_fl.append(fl)
-            # data_fl_er.append(fl_er)
 
             thisTau = list()
             if do_abs:
@@ -251,7 +378,7 @@ def do_fit(
             )
 
             if do_abs:
-                thisModel = [math.exp(-t*0.3) * m for (m, t) in zip(thisModel, thisTau)]
+                thisModel = [math.exp(-t) * m for (m, t) in zip(thisModel, thisTau)]
 
             # Ploting tau vs dist
             # plt.figure(figsize=(8, 6), tight_layout=True)
@@ -271,33 +398,6 @@ def do_fit(
             modelAll.append(thisModel)
         # END for
 
-        # Processing modelx'
-        # plt.figure(figsize=(8, 6))
-        # ax = plt.gca()
-        # ax.plot(model[0], energyAll)
-
-        def getSuzakuFlux(sed, energy):
-            flux = 0
-            for ii in range(len(sed) - 1):
-                en = 0.5 * (energy[ii] + energy[ii + 1])
-                delta = energy[ii + 1] - energy[ii]
-                mean = (sed[ii] + sed[ii + 1]) / en
-                flux += delta * mean
-            return flux
-
-        def getHESSFlux(sed, energy):
-            sedUnit = [(s / ((e * u.keV)**2)).to(1/(u.TeV * u.cm * u.cm * u.s)) for (s, e) in zip(sed, energy)]
-
-            nSum, gSum = 0, 0
-            for ii in range(len(energy) - 1):
-                g = - math.log(sedUnit[ii]/sedUnit[ii+1]) / math.log(energy[ii]/energy[ii+1])
-                n = sedUnit[ii] * (energy[ii] * u.keV.to(u.TeV) ) ** g
-                nSum += n
-                gSum += g
-            nMean = nSum / (len(energy) - 1)
-            gMean = gSum / (len(energy) - 1)
-            return nMean, gMean
-
         fluxModelSuzaku, fluxModelHESS, gammaModelHESS = list(), list(), list()
         for thisModel in modelAll:
             sedSuzaku = [f for (f, e) in zip(thisModel, energyAll) if e < 1e3]
@@ -305,37 +405,9 @@ def do_fit(
             sedHESS = [f for (f, e) in zip(thisModel, energyAll) if e > 1e3]
             energyHESS = [e for e in energyAll if e > 1e3]
             fluxModelSuzaku.append(getSuzakuFlux(sedSuzaku, energySuzaku))
-            n, g = getHESSFlux(sedHESS, energyHESS)
+            n, g = getHESSFluxAndGamma(sedHESS, energyHESS)
             fluxModelHESS.append(n)
             gammaModelHESS.append(g)
-
-        # Plotting
-        # Flux SUZAKU
-        # plt.figure(figsize=(8, 6))
-        # ax = plt.gca()
-
-        # ax.plot(phaseData, [f.value * 1e12 for f in fluxModelSuzaku], color='r', linestyle='none', marker='*')
-        # ax.errorbar(phaseData, fluxSuzaku, yerr=fluxErrSuzaku, color='k', linestyle='none', marker='o')
-
-        # plt.show()
-
-        # # Flux HESS
-        # plt.figure(figsize=(8, 6))
-        # ax = plt.gca()
-
-        # ax.plot(phaseData, [f.value * 1e12 for f in fluxModelHESS], color='r', linestyle='none', marker='*')
-        # ax.errorbar(phaseData, fluxHESS, yerr=fluxErrHESS, color='k', linestyle='none', marker='o')
-
-        # plt.show()
-
-        # # Gamma HESS
-        # plt.figure(figsize=(8, 6))
-        # ax = plt.gca()
-
-        # ax.plot(phaseData, gammaModelHESS, color='r', linestyle='none', marker='*')
-        # ax.errorbar(phaseData, gammaHESS, yerr=gammaErrHESS, color='k', linestyle='none', marker='o')
-
-        # plt.show()
 
         def computeModelPars(N, model, energy):
             thisModel = [(N / 1e20) * m for m in model]
@@ -346,14 +418,11 @@ def do_fit(
             energyHESS = [e for e in energyAll if e > 1e3]
 
             thisFluxModelSuzaku = getSuzakuFlux(sedSuzaku, energySuzaku)
-            thisFluxModelHESS, thisGammaModelHESS = getHESSFlux(sedHESS, energyHESS)
+            thisFluxModelHESS, thisGammaModelHESS = getHESSFluxAndGamma(sedHESS, energyHESS)
             return thisFluxModelSuzaku, thisFluxModelHESS, thisGammaModelHESS
 
-        chisqFit = list()
-        nFit = list()
-        fluxFitSuzaku = list()
-        fluxFitHESS = list()
-        gammaFitHESS = list()
+        chisqFit, nFit = list(), list()
+        fluxFitSuzaku, fluxFitHESS, gammaFitHESS = list(), list(), list()
 
         for ii in range(len(phaseData)):
 
@@ -372,7 +441,8 @@ def do_fit(
                 least_square,
                 n=NormStart[ii],
                 fix_n=False,
-                limit_n=(NormStart[ii] * 0.0001, NormStart[ii] * 10000)
+                limit_n=(NormStart[ii] * 0.0001, NormStart[ii] * 10000),
+                errordef=1.
             )
 
             fmin, param = minuit.migrad()
@@ -395,65 +465,24 @@ def do_fit(
             minEdot = Edot
             minSigma = Sigma
 
-        if totalChiSq < 1:
-            # Plotting
-            # Norm
-            plt.figure(figsize=(8, 6))
-            ax = plt.gca()
+        print('ChiSq = {}'.format(totalChiSq))
 
-            ax.plot(phaseData, nFit, color='r', linestyle='none', marker='*')
-
-            plt.show()
-
-            # Flux SUZAKU
-            plt.figure(figsize=(8, 6))
-            ax = plt.gca()
-
-            ax.plot(phaseData, [f.value * 1e12 for f in fluxFitSuzaku], color='r', linestyle='none', marker='*')
-            ax.errorbar(phaseData, fluxSuzaku, yerr=fluxErrSuzaku, color='k', linestyle='none', marker='o', fillstyle='none')
-
-            plt.show()
-
-            # Flux HESS
-            plt.figure(figsize=(8, 6))
-            ax = plt.gca()
-
-            ax.plot(phaseData, [f.value * 1e12 for f in fluxFitHESS], color='r', linestyle='none', marker='*')
-            ax.errorbar(phaseData, fluxHESS, yerr=fluxErrHESS, color='k', linestyle='none', marker='o', fillstyle='none')
-
-            plt.show()
-
-            # Gamma HESS
-            plt.figure(figsize=(8, 6))
-            ax = plt.gca()
-
-            ax.plot(phaseData, gammaFitHESS, color='r', linestyle='none', marker='*')
-            ax.errorbar(phaseData, gammaHESS, yerr=gammaErrHESS, color='k', linestyle='none', marker='o', fillstyle='none')
-
-            plt.show()
-
-            # Plotting SED
-            whichPhase = 2
-            thisModel = [(nFit[whichPhase] / 1e20) * m for m in modelAll[whichPhase]]
-
-            sedHESS = [f for (f, e) in zip(thisModel, energyAll) if e > 1e3]
-            energyHESS = [e for e in energyAll if e > 1e3]
-
-            plt.figure(figsize=(8, 6))
-            ax = plt.gca()
-            ax.set_xscale('log')
-            ax.set_yscale('log')
-            ax.set_title('chisq/ndf = {}'.format(totalChiSq))
-
-            ax.plot(energyHESS, [f.value * 1e12 for f in sedHESS], color='r', linestyle='-', marker='*')
-
-            measuredSED = [e*e*fluxHESS[whichPhase]*(e**(-gammaHESS[whichPhase])) for e in [e * 1e-9 for e in energyHESS]]
-
-            ax.plot(energyHESS, measuredSED, color='b', linestyle='-')
-
-            print(totalChiSq)
-
-            plt.show()
+        if totalChiSq < 1e20:
+            plotResults(
+                phaseData=phaseData,
+                nFit=nFit,
+                fluxFitSuzaku=fluxFitSuzaku,
+                fluxSuzaku=fluxSuzaku,
+                fluxErrSuzaku=fluxErrSuzaku,
+                fluxFitHESS=fluxFitHESS,
+                fluxHESS=fluxHESS,
+                fluxErrHESS=fluxErrHESS,
+                gammaFitHESS=gammaFitHESS,
+                gammaHESS=gammaHESS,
+                gammaErrHESS=gammaErrHESS,
+                modelAll=modelAll,
+                energyAll=energyAll
+            )
 
         continue
 
@@ -517,9 +546,8 @@ def do_fit(
             OutFit.write('\n')
 
     print('ChiSqMin {}'.format(chisqMin))
-    print('Edot {}'.format(minEdot))
+    print('lgEdot {}'.format(math.log10(minEdot)))
     print('Sigma {}'.format(minSigma))
-
 
     OutFit.close()
 
@@ -561,7 +589,6 @@ def process_labels(labels):
         elif orb == 'sa':
             inPars['inclination'].append(60)
 
-
         inPars['Mdot'].append(1.e-7)
 
         if orb == 'ca':
@@ -576,8 +603,8 @@ def process_labels(labels):
 
         # Size
         if 'test' in ll:
-            lgEdot_bins = 60
-            lgSigma_bins = 60
+            lgEdot_bins = 20
+            lgSigma_bins = 20
         elif 'small' in ll:
             lgEdot_bins = 20
             lgSigma_bins = 40
@@ -588,7 +615,7 @@ def process_labels(labels):
         inPars['lgSigma_bins'].append(lgSigma_bins)
 
         # Alpha
-        inPars['AlphaSigma'].append(2.0)
+        inPars['AlphaSigma'].append(1.0)
 
         # NoAbs
         if 'no_abs' in ll or 'test' in ll:
@@ -605,10 +632,10 @@ if __name__ == '__main__':
     labels = sys.argv[1:] if len(sys.argv) > 1 else ['test']
     logging.info('Labels {}'.format(labels))
 
-    lgEdot_min = 36.5
-    lgEdot_max = 37.5
-    lgSigma_min = math.log10(1e-4)
-    lgSigma_max = math.log10(1e-2)
+    lgEdot_min = 37.5
+    lgEdot_max = 38.2
+    lgSigma_min = math.log10(1e-2)
+    lgSigma_max = math.log10(4e-2)
 
     inPars = process_labels(labels)
 

@@ -27,19 +27,19 @@ if __name__ == '__main__':
     util.set_my_fonts(mode='talk')
     periods = [0, 1, 2, 4]
     # periods = [0, 1]
-    plot_label = '_4data_T317'
-    small_label = '_p_sup'
+    plot_label = '_paper2'
+    small_label = '_small'
     which_orbit = ['ca', 'mo']
-    show = False
+    show = True
     band = True
-    fast_sed = False
+    fast_sed = True
     do_solution = True
-    do_sed = True
-    do_sed_both = False
-    do_mag = True
-    do_density = True
-    do_dist = True
-    do_opt = True
+    do_sed = False
+    do_sed_both = True
+    do_mag = False
+    do_density = False
+    do_dist = False
+    do_opt = False
     do_ebr = False      # no
     do_sig = False      # no
     do_mdot = False     # no
@@ -136,7 +136,7 @@ if __name__ == '__main__':
         ax.legend(loc='best', frameon=False)
 
         ax.set_ylim(ylim[0], ylim[1])
-        ax.set_ylim(xlim[0], xlim[1])
+        ax.set_xlim(xlim[0], xlim[1])
 
         if show:
             plt.show()
@@ -292,7 +292,9 @@ if __name__ == '__main__':
                         label=r'$E_\mathrm{min}=0.1$ TeV, $E_\mathrm{cut}=50$ TeV',
                         emin=0.10,
                         ecut=50,
-                        fast=fast_sed
+                        fast=fast_sed,
+                        best_solution=False,
+                        Edot=1e36
                     )
                     # fr_ca.plot_sed(
                     #     iperiod=iper,
@@ -317,7 +319,9 @@ if __name__ == '__main__':
                         label=r'$E_\mathrm{min}=0.1$ TeV, $E_\mathrm{cut}=50$ TeV',
                         emin=0.10,
                         ecut=50,
-                        fast=fast_sed
+                        fast=fast_sed,
+                        best_solution=False,
+                        Edot=1e36
                     )
                     # fr_mo.plot_sed(
                     #     iperiod=iper,

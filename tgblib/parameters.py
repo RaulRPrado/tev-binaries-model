@@ -51,4 +51,4 @@ SRC_DIST_LS = 2.5  # kpc
 
 MDOT_LS = 1e-7
 
-VW_LS = 1000
+VW_LS = 2400

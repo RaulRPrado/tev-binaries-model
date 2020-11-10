@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for size in '' '_small'
+for size in '_small'
 do
     for orb in 'ca' 'mo'
     do
