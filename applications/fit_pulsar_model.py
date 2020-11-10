@@ -404,8 +404,8 @@ def process_labels(labels):
             lgEdot_bins = 15
             lgSigma_bins = 20
         elif 'small' in ll:
-            lgEdot_bins = 5
-            lgSigma_bins = 5
+            lgEdot_bins = 8
+            lgSigma_bins = 8
         else:
             lgEdot_bins = 40
             lgSigma_bins = 200
