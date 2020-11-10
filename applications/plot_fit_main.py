@@ -30,7 +30,7 @@ if __name__ == '__main__':
     plot_label = '_paper2'
     small_label = '_small'
     which_orbit = ['ca', 'mo']
-    show = True
+    show = False
     band = True
     fast_sed = True
     do_solution = True

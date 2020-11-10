@@ -126,8 +126,8 @@ def do_fit(
         DistPulsar = [psr.Rshock(Edot=Edot, Mdot=Mdot, Vw=Vw, D=d) for d in Dist]
         DistStar = Dist - DistPulsar
         DistRef = 4.
-        # SigmaFac = [pow(Dist[0] / d, AlphaSigma) for d in Dist]
-        SigmaFac = [pow(DistRef / d, AlphaSigma) for d in Dist]
+        SigmaFac = [pow(Dist[0] / d, AlphaSigma) for d in Dist]
+        # SigmaFac = [pow(DistRef / d, AlphaSigma) for d in Dist]
         SigmaShock = [Sigma * f for f in SigmaFac]
         Bfield = [psr.B2_KC(Edot=Edot, Rs=dp, sigma=s) for (dp, s) in zip(DistPulsar, SigmaShock)]
         Density = [psr.PhotonDensity(Tstar=Tstar, Rstar=Rstar, d=d) for d in DistStar]
