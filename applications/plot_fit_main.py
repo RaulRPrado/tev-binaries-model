@@ -380,10 +380,10 @@ if __name__ == '__main__':
     def plot_sed_both():
         ##############################
         # SED Both
-        plt.figure(figsize=(16, 6), tight_layout=True)
+        plt.figure(figsize=(2 * 8, 2 * 6), tight_layout=True)
 
-        for iper in [0, 1]:
-            plt.subplot(1, 2, iper + 1)
+        for iper, per in enumerate(periods):
+            plt.subplot(2, 2, iper + 1)
             fig = plt.gcf()
             ax = plt.gca()
             ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
@@ -393,48 +393,74 @@ if __name__ == '__main__':
             ax.tick_params(which='minor', length=minorTickSize)
             ax.tick_params(which='major', length=majorTickSize)
 
-            data_en, data_fl, data_fl_er = data.get_data(iper)
             fermi_spec_en, fermi_spec_fl, fermi_spec_fl_er = data.get_fermi_spec()
             fermi_lim_en, fermi_lim_fl, fermi_lim_fl_er = data.get_fermi_upper_limits()
 
             # title = 'Nov. 2017' if iper == 0 else 'Dec. 2017'
             # ax.set_title(title)
 
-            main_ca = round((10**fr_ca.lgEdotMin) / (10**int(fr_ca.lgEdotMin)), 2)
-            pow_ca = int(fr_ca.lgEdotMin)
+            # main_ca = round((10**fr_ca.lgEdotMin) / (10**int(fr_ca.lgEdotMin)), 2)
+            # pow_ca = int(fr_ca.lgEdotMin)
 
-            label_ca_sed = (label_ca + '\n' + r'$L_\mathrm{sd}=$' +
-                            str(main_ca) + r'$\;10^{'+str(pow_ca) + r'}$' +
-                            r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_ca.lgSigmaMin))
+            # label_ca_sed = (label_ca + '\n' + r'$L_\mathrm{sd}=$' +
+            #                 str(main_ca) + r'$\;10^{'+str(pow_ca) + r'}$' +
+            #                 r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_ca.lgSigmaMin))
 
-            main_mo = round((10**fr_mo.lgEdotMin) / (10**int(fr_mo.lgEdotMin)), 2)
-            pow_mo = int(fr_mo.lgEdotMin)
+            # main_mo = round((10**fr_mo.lgEdotMin) / (10**int(fr_mo.lgEdotMin)), 2)
+            # pow_mo = int(fr_mo.lgEdotMin)
 
-            label_mo_sed = (label_mo + '\n' + r'$L_\mathrm{sd}=$' +
-                            str(main_mo) + r'$\;10^{'+str(pow_mo) + r'}$' +
-                            r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_mo.lgSigmaMin))
+            # label_mo_sed = (label_mo + '\n' + r'$L_\mathrm{sd}=$' +
+            #                 str(main_mo) + r'$\;10^{'+str(pow_mo) + r'}$' +
+            #                 r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_mo.lgSigmaMin))
 
-            fr_ca.plot_sed(period=iper,
-                           theta_ic=theta_ic_ca[iper],
-                           dist=dist_ca[iper],
-                           pos=pos_ca[iper],
-                           ls='-',
-                           label=label_ca_sed if iper == 0 else None,
-                           emin=0.20,
-                           ecut=100,
-                           fast=fast_sed)
-            fr_mo.plot_sed(period=iper,
-                           theta_ic=theta_ic_mo[iper],
-                           dist=dist_mo[iper],
-                           pos=pos_mo[iper],
-                           ls='--',
-                           label=label_mo_sed if iper == 1 else None,
-                           emin=0.20,
-                           ecut=100,
-                           fast=fast_sed)
+            fr_ca.plot_sed(
+                period=iper,
+                theta_ic=theta_ic_ca[iper],
+                dist=dist_ca[iper],
+                pos=pos_ca[iper],
+                ls='-',
+                # label=label_ca_sed if iper == 0 else None,
+                emin=0.10,
+                ecut=50,
+                fast=fast_sed
+                # best_solution=False,
+                # Edot=1e36
+            )
+            fr_mo.plot_sed(
+                period=iper,
+                theta_ic=theta_ic_mo[iper],
+                dist=dist_mo[iper],
+                pos=pos_mo[iper],
+                ls='--',
+                # label=label_mo_sed if iper == 1 else None,
+                emin=0.10,
+                ecut=50,
+                fast=fast_sed,
+                # best_solution=False,
+                # Edot=1e36
+            )
 
-            ax.errorbar(data_en, data_fl, yerr=data_fl_er,
-                        linestyle='None', color='k', marker='o')
+            data_en, data_fl, data_fl_er = data.get_data(per)
+            ax.errorbar(
+                data_en,
+                data_fl,
+                yerr=data_fl_er,
+                linestyle='None',
+                color='k',
+                marker='o'
+            )
+
+            data_en_ul, data_fl_ul = data.get_data_ul(per)
+            if len(data_en_ul) > 0:
+                data_fl_ul_err = [p - pow(10, math.log10(p)-0.1) for p in data_fl_ul]
+                ax.errorbar(
+                    data_en_ul,
+                    data_fl_ul,
+                    yerr=data_fl_ul_err,
+                    uplims=True,
+                    color='k',
+                    linestyle='none'
+                )
 
             ax.set_ylim(2e-14, 1e-10)
 

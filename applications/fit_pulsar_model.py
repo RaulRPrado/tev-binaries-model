@@ -404,8 +404,8 @@ def process_labels(labels):
             lgEdot_bins = 15
             lgSigma_bins = 20
         elif 'small' in ll:
-            lgEdot_bins = 8
-            lgSigma_bins = 8
+            lgEdot_bins = 20
+            lgSigma_bins = 50
         else:
             lgEdot_bins = 40
             lgSigma_bins = 200
@@ -436,10 +436,10 @@ if __name__ == '__main__':
     labels = sys.argv[1:] if len(sys.argv) > 1 else ['test']
     logging.info('Labels {}'.format(labels))
 
-    lgEdot_min = 35
-    lgEdot_max = 37
+    lgEdot_min = 34
+    lgEdot_max = 38
     lgSigma_min = math.log10(1e-3)
-    lgSigma_max = math.log10(1e-1)
+    lgSigma_max = math.log10(3e-1)
 
     # lgEdot_min = 36
     # lgEdot_max = 38
