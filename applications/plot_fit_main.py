@@ -414,7 +414,8 @@ if __name__ == '__main__':
             #                 r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_mo.lgSigmaMin))
 
             fr_ca.plot_sed(
-                period=iper,
+                iperiod=iper,
+                period=per,
                 theta_ic=theta_ic_ca[iper],
                 dist=dist_ca[iper],
                 pos=pos_ca[iper],
@@ -427,7 +428,8 @@ if __name__ == '__main__':
                 # Edot=1e36
             )
             fr_mo.plot_sed(
-                period=iper,
+                iperiod=iper,
+                period=per,
                 theta_ic=theta_ic_mo[iper],
                 dist=dist_mo[iper],
                 pos=pos_mo[iper],

@@ -562,8 +562,6 @@ class FitResult(object):
         label='None',
         Tstar=pars.TSTAR,
         Rstar=pars.RSTAR,
-        Mdot=3.16e-9,
-        Vw=1500,
         emin=0.1,
         ecut=50,
         fast=False
