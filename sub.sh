@@ -2,7 +2,7 @@
 
 for size in '_small'
 do
-    for orb in 'ca' 'mo'
+    for orb in 'an'
     do
         label="${orb}${size}_dref"
         echo "Submitting label $label"

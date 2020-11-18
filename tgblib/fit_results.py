@@ -637,6 +637,7 @@ class FitResult(object):
         model_abs = [math.exp(-t) * m.value for (m, t) in zip(model, tau)]
 
         EnergyToPlot, model_abs = util.fix_naima_bug(EnergyToPlot, model_abs)
+        model_abs = util.smooth_break(EnergyToPlot, model_abs)
 
         ax = plt.gca()
         ax.plot(EnergyToPlot, model_abs, ls=ls, c=self.color, label=label)

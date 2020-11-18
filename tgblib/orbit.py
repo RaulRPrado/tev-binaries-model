@@ -30,8 +30,7 @@ class SystemParameters:
             'temp_star',
             'rad_star',
             'phase_per',
-            'x1',
-            'f_m'
+            'x1'
         ]
         for p in required_par:
             if p not in kwargs.keys():
@@ -601,8 +600,8 @@ def generate_systems(
     rad_star,
     mass_star,
     mass_compact,
-    f_m,
-    x1
+    x1,
+    f_m=[None]
 ):
     systems = list()
     comb = itertools.product(*[
@@ -674,6 +673,22 @@ def getMoritaniSystem():
         mass_compact=[1.4],
         f_m=[0.0024],
         x1=[0.120]
+    )
+
+
+def getAnSystem():
+    return generate_systems(
+        eccentricity=[0.45],
+        phase_per=[0.3],
+        inclination=[47 * util.degToRad],
+        omega=[271 * util.degToRad],
+        period=[pars.TPER],
+        mjd_0=[pars.MJD_0],
+        temp_star=[pars.TSTAR],
+        rad_star=[pars.RSTAR],
+        mass_star=[16],
+        mass_compact=[1.4],
+        x1=[0.190663]
     )
 
 

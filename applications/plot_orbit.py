@@ -11,7 +11,7 @@ from tgblib import orbit
 
 if __name__ == '__main__':
 
-    util.set_my_fonts(mode='text')
+    util.set_my_fonts(mode='talk')
     show = False
     label = '_p315'
 
@@ -24,11 +24,11 @@ if __name__ == '__main__':
     fillstyle = ['full', 'full', 'full', 'none', 'full']
 
     extra_label = {
-        0: '',
-        1: '',
-        2: '',
-        3: ' (only VTS)',
-        4: ''
+        0: ' - Nu1a + Ve1a',
+        1: ' - Nu1b + Ve1b',
+        2: ' - Nu2a + Ve2a',
+        3: ' - Ve2b',
+        4: ' - Nu2b + Ve2c'
     }
 
     label_ca = 'Casares et al., 2012'
@@ -63,6 +63,21 @@ if __name__ == '__main__':
         x1=[0.120]
     )
 
+    label_an = 'An, 2020'
+    systems_an = orbit.generate_systems(
+        eccentricity=[0.45],
+        phase_per=[0.3],
+        inclination=[47 * util.degToRad],
+        omega=[279 * util.degToRad],
+        period=[Tper],
+        mjd_0=[MJD_0],
+        temp_star=[TSTAR],
+        rad_star=[RSTAR],
+        mass_star=[16],
+        mass_compact=[1.4],
+        x1=[0.190663]
+    )
+
     orbits_ca = orbit.SetOfOrbits(
         phase_step=0.0005,
         color='r',
@@ -75,9 +90,19 @@ if __name__ == '__main__':
         systems=systems_mo,
         mjd_pts=mjd_pts
     )
+    orbits_an = orbit.SetOfOrbits(
+        phase_step=0.0005,
+        color='g',
+        systems=systems_an,
+        mjd_pts=mjd_pts
+    )
 
     pts_ca = orbits_ca.get_pts()
     pts_mo = orbits_mo.get_pts()
+    pts_an = orbits_an.get_pts()
+    x_pos_an, y_pos_an = pts_an['x_pos'], pts_an['y_pos']
+
+    print(pts_an['phase'])
 
     ##########
     # Orbit Ca
@@ -224,6 +249,13 @@ if __name__ == '__main__':
         set_aspect=False,
         only_ref=True
     )
+    orbits_an.plot_orbit(
+        noPoint=True,
+        noAxes=True,
+        lw=2,
+        set_aspect=False,
+        only_ref=True
+    )
     ax.set_ylabel('Y [AU]')
     ax.set_xlabel('X [AU]')
 
@@ -233,7 +265,7 @@ if __name__ == '__main__':
             y_pos_ca[iper],
             c='k',
             linestyle='None',
-            markersize=12,
+            markersize=10,
             fillstyle=fillstyle[iper],
             marker=markers[iper],
             label=MONTH_LABEL[iper] + extra_label[iper]
@@ -244,7 +276,17 @@ if __name__ == '__main__':
             y_pos_mo[iper],
             c='k',
             linestyle='None',
-            markersize=12,
+            markersize=10,
+            fillstyle=fillstyle[iper],
+            marker=markers[iper]
+        )
+
+        ax.plot(
+            x_pos_an[iper],
+            y_pos_an[iper],
+            c='k',
+            linestyle='None',
+            markersize=10,
             fillstyle=fillstyle[iper],
             marker=markers[iper]
         )
@@ -261,9 +303,11 @@ if __name__ == '__main__':
     ax.add_artist(disk)
 
     ylim = ax.get_ylim()
-    ax.set_ylim(ylim[0] - 0.2, ylim[1] + 0.2)
+    ax.set_ylim(ylim[0] - 0.1, ylim[1] + 0.3)
+    xlim = ax.get_xlim()
+    ax.set_xlim(xlim[0] - 0.1, xlim[1] + 1.0)
     ax.set_aspect('equal', adjustable='datalim')
-    ax.legend(frameon=False, loc='lower left', handletextpad=0.7, handlelength=0)
+    ax.legend(frameon=False, loc='upper right', fontsize=14, handletextpad=0.7, handlelength=0)
 
     if show:
         plt.show()

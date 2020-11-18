@@ -348,6 +348,8 @@ def process_labels(labels):
             orb = 'ca'
         elif 'mo' in ll or 'test' in ll:
             orb = 'mo'
+        elif 'an' in ll:
+            orb = 'an'
         else:
             logging.error('ParameterError: unidentified orbit - aborting')
             continue
@@ -355,13 +357,27 @@ def process_labels(labels):
         inPars['orb'].append(orb)
 
         # Inclination
+        inclination = {
+            'i_inf': {
+                'ca': 32,
+                'mo': 59
+            },
+            'i_sup': {
+                'ca': 80,
+                'mo': 42
+            },
+            'i': {
+                'ca': 69.5,
+                'mo': 37,
+                'an': 47
+            }
+        }
         if 'i_inf' in ll:
-            inclination = 59 if orb == 'ca' else 32
+            inPars['inclination'].append(inclination['i_inf'][orb])
         elif 'i_sup' in ll:
-            inclination = 80 if orb == 'ca' else 42
+            inPars['inclination'].append(inclination['i_sup'][orb])
         else:
-            inclination = 69.5 if orb == 'ca' else 37
-        inPars['inclination'].append(inclination)
+            inPars['inclination'].append(inclination['i'][orb])
 
         # Mdot
         if 'm_inf' in ll:
@@ -382,22 +398,50 @@ def process_labels(labels):
         inPars['period'].append(period)
 
         # Omega
+        omega = {
+            'o_inf': {
+                'ca': 112,
+                'mo': 242
+            },
+            'o_sup': {
+                'ca': 146,
+                'mo': 300
+            },
+            'o': {
+                'ca': 129,
+                'mo': 271,
+                'an': 279
+            }
+        }
         if 'o_inf' in ll:
-            omega = 112 if orb == 'ca' else 242
+            inPars['omega'].append(omega['o_inf'][orb])
         elif 'o_sup' in ll:
-            omega = 146 if orb == 'ca' else 300
+            inPars['omega'].append(omega['o_sup'][orb])
         else:
-            omega = 129 if orb == 'ca' else 271
-        inPars['omega'].append(omega)
+            inPars['omega'].append(omega['o'][orb])
 
         # Eccentricity
+        eccentricity = {
+            'e_inf': {
+                'ca': 0.75,
+                'mo': 0.35
+            },
+            'e_sup': {
+                'ca': 0.91,
+                'mo': 0.93
+            },
+            'e': {
+                'ca': 0.82,
+                'mo': 0.64,
+                'an': 0.45
+            }
+        }
         if 'e_inf' in ll:
-            eccentricity = 0.75 if orb == 'ca' else 0.35
+            inPars['eccentricity'].append(eccentricity['e_inf'][orb])
         elif 'e_sup' in ll:
-            eccentricity = 0.91 if orb == 'ca' else 0.93
+            inPars['eccentricity'].append(eccentricity['e_sup'][orb])
         else:
-            eccentricity = 0.83 if orb == 'ca' else 0.64
-        inPars['eccentricity'].append(eccentricity)
+            inPars['eccentricity'].append(eccentricity['e'][orb])
 
         # Size
         if 'test' in ll:
@@ -474,7 +518,7 @@ if __name__ == '__main__':
             systems = orbit.generate_systems(
                 eccentricity=[inPars['eccentricity'][iPar]],
                 phase_per=[0.663],
-                inclination=[inPars['inclination'][iPar] * util.degToRad],  # 47-80
+                inclination=[inPars['inclination'][iPar] * util.degToRad],
                 omega=[inPars['omega'][iPar] * util.degToRad],
                 period=[inPars['period'][iPar]],
                 mjd_0=[pars.MJD_0],
@@ -484,6 +528,20 @@ if __name__ == '__main__':
                 mass_compact=[1.4],
                 f_m=[0.0024],
                 x1=[0.120]
+            )
+        elif inPars['orb'][iPar] == 'an':
+            systems = orbit.generate_systems(
+                eccentricity=[inPars['eccentricity'][iPar]],
+                phase_per=[0.3],
+                inclination=[inPars['inclination'][iPar] * util.degToRad],
+                omega=[inPars['omega'][iPar] * util.degToRad],
+                period=[inPars['period'][iPar]],
+                mjd_0=[pars.MJD_0],
+                temp_star=[pars.TSTAR],
+                rad_star=[pars.RSTAR],
+                mass_star=[16],
+                mass_compact=[1.4],
+                x1=[0.190663]
             )
 
         orbits = orbit.SetOfOrbits(phase_step=0.0005, color='r', systems=systems, mjd_pts=mjd_pts)

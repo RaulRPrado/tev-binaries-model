@@ -17,8 +17,23 @@ logging.getLogger().setLevel(logging.INFO)
 if __name__ == '__main__':
 
     util.set_my_fonts(mode='talk')
-    show = True
+    show = False
     label = 'std'
+
+    NU_TITLE = {
+        0: 'Nu1a',
+        1: 'Nu1b',
+        2: 'Nu2a',
+        3: 'none',
+        4: 'Nu2b'
+    }
+    VTS_TITLE = {
+        0: 'Ve1a',
+        1: 'Ve1b',
+        2: 'Ve2a',
+        3: 'Ve2b',
+        4: 'Ve2c'
+    }
 
     for iper in range(NO_OF_PERIODS):
         logging.info('Plotting data - Period {}'.format(iper))
@@ -36,7 +51,7 @@ if __name__ == '__main__':
 
             plt.figure(figsize=(8, 6), tight_layout=True)
             ax = plt.gca()
-            ax.set_title(MONTH_LABEL[iper])
+            ax.set_title(NU_TITLE[iper])
             ax.set_yscale('log')
             ax.set_xscale('log')
             ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
@@ -74,18 +89,18 @@ if __name__ == '__main__':
                 + '{:.2f}'.format(sf.gammaErr)
             )
 
-            ax.text(
-                0.07,
-                0.90,
-                flux_text,
-                transform=ax.transAxes
-            )
-            ax.text(
-                0.07,
-                0.82,
-                slope_text,
-                transform=ax.transAxes
-            )
+            # ax.text(
+            #     0.07,
+            #     0.90,
+            #     flux_text,
+            #     transform=ax.transAxes
+            # )
+            # ax.text(
+            #     0.07,
+            #     0.82,
+            #     slope_text,
+            #     transform=ax.transAxes
+            # )
 
             plt.savefig(
                 'figures/DataNuStar_' + str(iper) + '_' + label + '.png',
@@ -107,7 +122,7 @@ if __name__ == '__main__':
 
             plt.figure(figsize=(8, 6), tight_layout=True)
             ax = plt.gca()
-            ax.set_title(MONTH_LABEL[iper])
+            ax.set_title(VTS_TITLE[iper])
             ax.set_yscale('log')
             ax.set_xscale('log')
             ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
@@ -135,18 +150,18 @@ if __name__ == '__main__':
                         + '{:.2f}'.format(sf.gammaErr)
                     )
 
-                    ax.text(
-                        0.07,
-                        0.12,
-                        flux_text,
-                        transform=ax.transAxes
-                    )
-                    ax.text(
-                        0.07,
-                        0.05,
-                        slope_text,
-                        transform=ax.transAxes
-                    )
+                    # ax.text(
+                    #     0.07,
+                    #     0.12,
+                    #     flux_text,
+                    #     transform=ax.transAxes
+                    # )
+                    # ax.text(
+                    #     0.07,
+                    #     0.05,
+                    #     slope_text,
+                    #     transform=ax.transAxes
+                    # )
 
                     # Normalization - Gernot's question Jan2020
                     N = sf.get_norm(e=1e9)  # in erg cm-2 s-1

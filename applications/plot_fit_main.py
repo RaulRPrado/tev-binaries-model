@@ -396,22 +396,33 @@ if __name__ == '__main__':
             fermi_spec_en, fermi_spec_fl, fermi_spec_fl_er = data.get_fermi_spec()
             fermi_lim_en, fermi_lim_fl, fermi_lim_fl_er = data.get_fermi_upper_limits()
 
-            # title = 'Nov. 2017' if iper == 0 else 'Dec. 2017'
-            # ax.set_title(title)
+            titles = {
+                0: 'Nov. 2017 - Nu1a + Ve1a',
+                1: 'Dec. 2017 - Nu1b + Ve1b',
+                2: 'Dec. 2019 - Ve2a',
+                3: 'Jan. 2020 - Nu2a + Ve2b',
+                4: 'Feb. 2020 - Nu2b + Ve2c'
+            }
 
-            # main_ca = round((10**fr_ca.lgEdotMin) / (10**int(fr_ca.lgEdotMin)), 2)
-            # pow_ca = int(fr_ca.lgEdotMin)
+            ax.set_title(titles[per])
 
-            # label_ca_sed = (label_ca + '\n' + r'$L_\mathrm{sd}=$' +
-            #                 str(main_ca) + r'$\;10^{'+str(pow_ca) + r'}$' +
-            #                 r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_ca.lgSigmaMin))
+            main_ca = round((10**fr_ca.lgEdotMin) / (10**int(fr_ca.lgEdotMin)), 2)
+            pow_ca = int(fr_ca.lgEdotMin)
 
-            # main_mo = round((10**fr_mo.lgEdotMin) / (10**int(fr_mo.lgEdotMin)), 2)
-            # pow_mo = int(fr_mo.lgEdotMin)
+            label_ca_sed = (
+                label_ca + '\n' + r'$L_\mathrm{sd}=$'
+                + str(main_ca) + r'$\;10^{'+str(pow_ca) + r'}$'
+                + r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_ca.lgSigmaMin)
+            )
 
-            # label_mo_sed = (label_mo + '\n' + r'$L_\mathrm{sd}=$' +
-            #                 str(main_mo) + r'$\;10^{'+str(pow_mo) + r'}$' +
-            #                 r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_mo.lgSigmaMin))
+            main_mo = round((10**fr_mo.lgEdotMin) / (10**int(fr_mo.lgEdotMin)), 2)
+            pow_mo = int(fr_mo.lgEdotMin)
+
+            label_mo_sed = (
+                label_mo + '\n' + r'$L_\mathrm{sd}=$'
+                + str(main_mo) + r'$\;10^{'+str(pow_mo) + r'}$'
+                + r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_mo.lgSigmaMin)
+            )
 
             fr_ca.plot_sed(
                 iperiod=iper,
@@ -420,7 +431,7 @@ if __name__ == '__main__':
                 dist=dist_ca[iper],
                 pos=pos_ca[iper],
                 ls='-',
-                # label=label_ca_sed if iper == 0 else None,
+                label=label_ca_sed if iper == 0 else None,
                 emin=0.10,
                 ecut=50,
                 fast=fast_sed
@@ -434,7 +445,7 @@ if __name__ == '__main__':
                 dist=dist_mo[iper],
                 pos=pos_mo[iper],
                 ls='--',
-                # label=label_mo_sed if iper == 1 else None,
+                label=label_mo_sed if iper == 1 else None,
                 emin=0.10,
                 ecut=50,
                 fast=fast_sed,
