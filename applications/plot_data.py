@@ -42,6 +42,11 @@ if __name__ == '__main__':
         vtsEnergy, vtsFlux, vtsFluxErr = get_data(iper, onlyVTS=True)
         vtsEnergyUL, vtsFluxUL = get_data_ul(iper)
 
+        vtsEnergy_GT, vtsEnergyUL_GT = list(), list()
+        if iper < 2:
+            vtsEnergy_GT, vtsFlux_GT, vtsFluxErr_GT = get_data(iper, onlyVTS=True, GT=True)
+            vtsEnergyUL_GT, vtsFluxUL_GT = get_data_ul(iper, GT=True)
+
         ##########
         # NuSTAR
         if len(nuStarEnergy) == 0:
@@ -133,10 +138,11 @@ if __name__ == '__main__':
 
                 # sf.fit_power_law(Emin=util.get_emin_fit(vtsEnergy), Emax=util.get_emax_fit(vtsEnergy))
                 sf.plot_data(color='k', marker='o', linestyle='None')
+
                 if len(vtsEnergy) > 1:
-                    sf.fit_power_law(Emin=0.2e9, Emax=3e9)
+                    sf.fit_power_law(Emin=0.2e9, Emax=5e9)
                     sf.plot_fit(color='k', linestyle='-', linewidth=1.5)
-                    sf.plot_fit_unc(nocor=True, color='k', linestyle='None', alpha=0.2)
+                    sf.plot_fit_unc(nocor=True, color='k', linestyle='None', alpha=0.1)
 
                     flux_box = sf.flux / 1e-12
                     flux_err_box = sf.fluxErr / 1e-12
@@ -187,7 +193,29 @@ if __name__ == '__main__':
                     linestyle='none'
                 )
 
-            ax.set_ylim(1.7e-14, 9e-12)
+            # GT
+            if len(vtsEnergy_GT) > 0:
+                sf = SpectrumFit(energy=vtsEnergy_GT, spec=vtsFlux_GT, specErr=vtsFluxErr_GT)
+                sf.plot_data(color='r', marker='s', linestyle='None')
+
+                if len(vtsEnergy_GT) > 1:
+                    sf.fit_power_law(Emin=0.2e9, Emax=5e9)
+                    sf.plot_fit(color='r', linestyle='--', linewidth=1.5)
+                    sf.plot_fit_unc(nocor=True, color='r', linestyle='None', alpha=0.1)
+
+            # UPPER LIMITS
+            if len(vtsEnergyUL_GT) > 0:
+                vtsFluxErrUL = [p - pow(10, math.log10(p)-0.1) for p in vtsFluxUL]
+                ax.errorbar(
+                    vtsEnergyUL_GT,
+                    vtsFluxUL_GT,
+                    yerr=vtsFluxErrUL,
+                    uplims=True,
+                    color='r',
+                    linestyle='none'
+                )
+
+            ax.set_ylim(1.7e-14, 1e-11)
             ax.set_xlim(1e8, 1e10)
 
             myTicks = [1e8, 1e9, 1e10]

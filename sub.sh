@@ -1,8 +1,8 @@
 #!/bin/bash
 
-for size in '_small'
+for size in '' '_small'
 do
-    for orb in 'an'
+    for orb in 'mo' 'ca' 'an'
     do
         label="${orb}${size}_dref"
         echo "Submitting label $label"

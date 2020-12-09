@@ -37,7 +37,7 @@ def get_data_ls5039(which=None):
         return phase, data['flux'], data['flux_err'], data['gamma'], data['gamma_err']
 
 
-def get_data(period, onlyNuSTAR=False, onlyVTS=False):
+def get_data(period, onlyNuSTAR=False, onlyVTS=False, GT=False):
     '''
     Get data for a given period.
     Energies in keV and fluxes in erg/cm2/s
@@ -53,7 +53,8 @@ def get_data(period, onlyNuSTAR=False, onlyVTS=False):
         logging.error('Both onlyNuSTAR and onlyVTS - pick one')
         return None, None, None
 
-    data = ascii.read('data/HESS_J0632_' + str(period) + '.csv', format='basic')
+    labelGT = '_GT' if GT else ''
+    data = ascii.read('data/HESS_J0632_' + str(period) + labelGT + '.csv', format='basic')
 
     if onlyNuSTAR:
         logging.debug('Processing onlyNuSTAR data')
@@ -79,7 +80,7 @@ def get_data(period, onlyNuSTAR=False, onlyVTS=False):
     return energy_out, flux_out, flux_err_out
 
 
-def get_data_ul(period):
+def get_data_ul(period, GT=False):
     '''
     Get ul data for a given period.
     Energies in keV and fluxes in erg/cm2/s
@@ -92,7 +93,8 @@ def get_data_ul(period):
         logging.error('Invalid period')
         return None, None, None
 
-    data = ascii.read('data/HESS_J0632_' + str(period) + '.csv', format='basic')
+    labelGT = '_GT' if GT else ''
+    data = ascii.read('data/HESS_J0632_' + str(period) + labelGT + '.csv', format='basic')
 
     logging.debug('Processing UL data')
     energy = [en for (er, en) in zip(data['flux_err'], data['energy']) if er == 0]

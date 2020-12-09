@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # periods = [0, 1]
     plot_label = '_paper2'
     small_label = '_small'
-    which_orbit = ['ca', 'mo']
+    which_orbit = ['ca', 'mo', 'an']
     show = False
     band = True
     fast_sed = True
@@ -46,6 +46,7 @@ if __name__ == '__main__':
 
     label_ca = 'Orbit by Casares et al. 2012'
     label_mo = 'Orbit by Moritani et al. 2018'
+    label_an = 'this work'
     SigmaMax = 1e5
     EdotMin = 1e34
 
@@ -56,6 +57,7 @@ if __name__ == '__main__':
     # Orbits
     systems_ca = orbit.getCasaresSystem()
     systems_mo = orbit.getMoritaniSystem()
+    systems_an = orbit.getAnSystem()
 
     mjd_pts = mjd_pts = [pars.MJD_MEAN[p] for p in periods]
     orbits_ca = orbit.SetOfOrbits(
@@ -70,15 +72,25 @@ if __name__ == '__main__':
         systems=systems_mo,
         mjd_pts=mjd_pts
     )
+    orbits_an = orbit.SetOfOrbits(
+        phase_step=0.0005,
+        color='g',
+        systems=systems_an,
+        mjd_pts=mjd_pts
+    )
 
     pts_ca = orbits_ca.get_pts()
     pts_mo = orbits_mo.get_pts()
+    pts_an = orbits_an.get_pts()
     theta_ic_ca = pts_ca['theta_ic']
     dist_ca = pts_ca['distance']
     pos_ca = pts_ca['pos_3D']
     theta_ic_mo = pts_mo['theta_ic']
     dist_mo = pts_mo['distance']
     pos_mo = pts_mo['pos_3D']
+    theta_ic_an = pts_an['theta_ic']
+    dist_an = pts_an['distance']
+    pos_an = pts_an['pos_3D']
 
     #############
     # Fit Results
@@ -93,6 +105,13 @@ if __name__ == '__main__':
         n_periods=len(periods),
         label='mo' + small_label,
         color='b',
+        SigmaMax=SigmaMax,
+        EdotMin=EdotMin
+    )
+    fr_an = fr.FitResult(
+        n_periods=len(periods),
+        label='an' + small_label,
+        color='g',
         SigmaMax=SigmaMax,
         EdotMin=EdotMin
     )
@@ -232,6 +251,48 @@ if __name__ == '__main__':
             )
             plt.savefig(
                 'figures/FitSolutionsMo' + plot_label + '.png',
+                format='png',
+                bbox_inches='tight'
+            )
+
+        # Solution - An
+        plt.figure(figsize=(8, 6), tight_layout=True)
+        fig = plt.gcf()
+        ax = plt.gca()
+        ax.set_ylabel(r'$\sigma_0$')
+        ax.set_xlabel(r'$L_\mathrm{sd}$ [erg s$^{-1}$]')
+        ax.set_yscale('log')
+        ax.set_xscale('log')
+        ax.tick_params(which='minor', length=minorTickSize)
+        ax.tick_params(which='major', length=majorTickSize)
+
+        fr_an.plot_solution(
+            band=band,
+            line=True,
+            ms=40,
+            with_lines=True,
+            no_2s=False,
+            ls='-',
+            line_ls='--',
+            label=label_an
+        )
+
+        if xlim is not None and ylim is not None:
+            ax.set_xlim(xlim[0], xlim[1])
+            ax.set_ylim(ylim[0], ylim[1])
+
+        ax.text(0.1, 0.08, label_mo, transform=ax.transAxes, horizontalalignment='left')
+
+        if show:
+            plt.show()
+        else:
+            plt.savefig(
+                'figures/FitSolutionsAn' + plot_label + '.pdf',
+                format='pdf',
+                bbox_inches='tight'
+            )
+            plt.savefig(
+                'figures/FitSolutionsAn' + plot_label + '.png',
                 format='png',
                 bbox_inches='tight'
             )
@@ -399,8 +460,8 @@ if __name__ == '__main__':
             titles = {
                 0: 'Nov. 2017 - Nu1a + Ve1a',
                 1: 'Dec. 2017 - Nu1b + Ve1b',
-                2: 'Dec. 2019 - Ve2a',
-                3: 'Jan. 2020 - Nu2a + Ve2b',
+                2: 'Dec. 2019 - Nu2a + Ve2a',
+                3: 'Jan. 2020 - Ve2b',
                 4: 'Feb. 2020 - Nu2b + Ve2c'
             }
 
@@ -424,6 +485,15 @@ if __name__ == '__main__':
                 + r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_mo.lgSigmaMin)
             )
 
+            main_an = round((10**fr_an.lgEdotMin) / (10**int(fr_an.lgEdotMin)), 2)
+            pow_an = int(fr_an.lgEdotMin)
+
+            label_an_sed = (
+                label_an + '\n' + r'$L_\mathrm{sd}=$'
+                + str(main_an) + r'$\;10^{'+str(pow_an) + r'}$'
+                + r' ergs/s, $\sigma_0$=' + '{:.3f}'.format(10**fr_an.lgSigmaMin)
+            )
+
             fr_ca.plot_sed(
                 iperiod=iper,
                 period=per,
@@ -431,12 +501,11 @@ if __name__ == '__main__':
                 dist=dist_ca[iper],
                 pos=pos_ca[iper],
                 ls='-',
+                lw=2,
                 label=label_ca_sed if iper == 0 else None,
                 emin=0.10,
                 ecut=50,
                 fast=fast_sed
-                # best_solution=False,
-                # Edot=1e36
             )
             fr_mo.plot_sed(
                 iperiod=iper,
@@ -445,12 +514,24 @@ if __name__ == '__main__':
                 dist=dist_mo[iper],
                 pos=pos_mo[iper],
                 ls='--',
+                lw=2,
                 label=label_mo_sed if iper == 1 else None,
                 emin=0.10,
                 ecut=50,
                 fast=fast_sed,
-                # best_solution=False,
-                # Edot=1e36
+            )
+            fr_an.plot_sed(
+                iperiod=iper,
+                period=per,
+                theta_ic=theta_ic_an[iper],
+                dist=dist_an[iper],
+                pos=pos_an[iper],
+                ls=':',
+                lw=2,
+                label=label_an_sed if iper == 2 else None,
+                emin=0.10,
+                ecut=50,
+                fast=fast_sed,
             )
 
             data_en, data_fl, data_fl_er = data.get_data(per)

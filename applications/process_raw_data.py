@@ -22,6 +22,10 @@ if __name__ == '__main__':
         'Use only flux_error_lo as flux_err.'
     )
 
+    convFluxNuSTAR = u.keV.to(u.erg)
+    convEnergyVTS = u.TeV.to(u.keV)
+    convFluxVTS = u.TeV.to(u.erg)
+
     # Period 0 - Nov 2017
     logging.info('Period 0 - Nov. 2017')
 
@@ -31,19 +35,19 @@ if __name__ == '__main__':
     fileNameVTS = 'data/VTS_58073-58083.ecsv'
     dataVTS = ascii.read(fileNameVTS, format='basic')
 
+    fileNameVTS_GT = 'data/HESSJ0632p057.VTS.nustar-58073-58083.spectrum.ecsv'
+    dataVTS_GT = ascii.read(fileNameVTS_GT, format='basic')
+
     outData = dict()
     outData['energy'] = list()
     outData['flux'] = list()
     outData['flux_err'] = list()
 
-    convFluxNuSTAR = u.keV.to(u.erg)
     for d in dataNuSTAR:
         outData['energy'].append(d['energy'])
         outData['flux'].append(d['flux'] * convFluxNuSTAR)
         outData['flux_err'].append(d['flux_error_lo'] * convFluxNuSTAR)
 
-    convEnergyVTS = u.TeV.to(u.keV)
-    convFluxVTS = u.TeV.to(u.erg)
     for d in dataVTS:
         en = 10**d['lge']  # TeV
         outData['energy'].append(en * convEnergyVTS)
@@ -52,6 +56,26 @@ if __name__ == '__main__':
         outData['flux_err'].append(dnde_err * (en**2) * convFluxVTS)
 
     ascii.write(outData, 'data/HESS_J0632_0.csv', format='basic', overwrite=True)
+
+    # GT
+    outData_GT = dict()
+    outData_GT['energy'] = list()
+    outData_GT['flux'] = list()
+    outData_GT['flux_err'] = list()
+
+    for d in dataNuSTAR:
+        outData_GT['energy'].append(d['energy'])
+        outData_GT['flux'].append(d['flux'] * convFluxNuSTAR)
+        outData_GT['flux_err'].append(d['flux_error_lo'] * convFluxNuSTAR)
+
+    for d in dataVTS_GT:
+        en = d['e_ref']  # TeV
+        outData_GT['energy'].append(en * convEnergyVTS)
+        outData_GT['flux'].append(d['dnde'] * (en**2) * convFluxVTS)
+        dnde_err = (d['dnde_errn'] + d['dnde_errp']) / 2
+        outData_GT['flux_err'].append(dnde_err * (en**2) * convFluxVTS)
+
+    ascii.write(outData_GT, 'data/HESS_J0632_0_GT.csv', format='basic', overwrite=True)
 
     # Period 1 - Dec 2017
     logging.info('Period 1 - Dec. 2017')
@@ -62,19 +86,19 @@ if __name__ == '__main__':
     fileNameVTS = 'data/VTS_58101-58103.ecsv'
     dataVTS = ascii.read(fileNameVTS, format='basic')
 
+    fileNameVTS_GT = 'data/HESSJ0632p057.VTS.nustar-58101-58103.spectrum.ecsv'
+    dataVTS_GT = ascii.read(fileNameVTS_GT, format='basic')
+
     outData = dict()
     outData['energy'] = list()
     outData['flux'] = list()
     outData['flux_err'] = list()
 
-    convFluxNuSTAR = u.keV.to(u.erg)
     for d in dataNuSTAR:
         outData['energy'].append(d['energy'])
         outData['flux'].append(d['flux'] * convFluxNuSTAR)
         outData['flux_err'].append(d['flux_error_lo'] * convFluxNuSTAR)
 
-    convEnergyVTS = u.TeV.to(u.keV)
-    convFluxVTS = u.TeV.to(u.erg)
     for d in dataVTS:
         en = 10**d['lge']  # TeV
         outData['energy'].append(en * convEnergyVTS)
@@ -83,6 +107,26 @@ if __name__ == '__main__':
         outData['flux_err'].append(dnde_err * (en**2) * convFluxVTS)
 
     ascii.write(outData, 'data/HESS_J0632_1.csv', format='basic', overwrite=True)
+
+    # GT
+    outData_GT = dict()
+    outData_GT['energy'] = list()
+    outData_GT['flux'] = list()
+    outData_GT['flux_err'] = list()
+
+    for d in dataNuSTAR:
+        outData_GT['energy'].append(d['energy'])
+        outData_GT['flux'].append(d['flux'] * convFluxNuSTAR)
+        outData_GT['flux_err'].append(d['flux_error_lo'] * convFluxNuSTAR)
+
+    for d in dataVTS_GT:
+        en = d['e_ref']  # TeV
+        outData_GT['energy'].append(en * convEnergyVTS)
+        outData_GT['flux'].append(d['dnde'] * (en**2) * convFluxVTS)
+        dnde_err = (d['dnde_errn'] + d['dnde_errp']) / 2
+        outData_GT['flux_err'].append(dnde_err * (en**2) * convFluxVTS)
+
+    ascii.write(outData_GT, 'data/HESS_J0632_1_GT.csv', format='basic', overwrite=True)
 
     # Period 2 - Dec 2019
     logging.info('Period 2 - Dec. 2019')
@@ -98,14 +142,11 @@ if __name__ == '__main__':
     outData['flux'] = list()
     outData['flux_err'] = list()
 
-    convFluxNuSTAR = u.keV.to(u.erg)
     for d in dataNuSTAR:
         outData['energy'].append(d['energy'])
         outData['flux'].append(d['flux'] * convFluxNuSTAR)
         outData['flux_err'].append(d['flux_error'] * convFluxNuSTAR)
 
-    convEnergyVTS = u.TeV.to(u.keV)
-    convFluxVTS = u.TeV.to(u.erg)
     for d in dataVTS:
         # if d['dnde_error'] == 0.:
         #     continue
@@ -126,8 +167,6 @@ if __name__ == '__main__':
     outData['flux'] = list()
     outData['flux_err'] = list()
 
-    convEnergyVTS = u.TeV.to(u.keV)
-    convFluxVTS = u.TeV.to(u.erg)
     for d in dataVTS:
         # if d['dnde_error'] == 0.:
         #    continue
@@ -151,14 +190,11 @@ if __name__ == '__main__':
     outData['flux'] = list()
     outData['flux_err'] = list()
 
-    convFluxNuSTAR = u.keV.to(u.erg)
     for d in dataNuSTAR:
         outData['energy'].append(d['energy'])
         outData['flux'].append(d['flux'] * convFluxNuSTAR)
         outData['flux_err'].append(d['flux_error'] * convFluxNuSTAR)
 
-    convEnergyVTS = u.TeV.to(u.keV)
-    convFluxVTS = u.TeV.to(u.erg)
     for d in dataVTS:
         # if d['dnde_error'] == 0.:
         #     continue

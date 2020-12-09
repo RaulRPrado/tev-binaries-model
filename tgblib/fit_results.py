@@ -559,6 +559,7 @@ class FitResult(object):
         dist=2,
         pos=np.array([1, 1, 1]),
         ls='-',
+        lw=1,
         label='None',
         Tstar=pars.TSTAR,
         Rstar=pars.RSTAR,
@@ -640,7 +641,7 @@ class FitResult(object):
         model_abs = util.smooth_break(EnergyToPlot, model_abs)
 
         ax = plt.gca()
-        ax.plot(EnergyToPlot, model_abs, ls=ls, c=self.color, label=label)
+        ax.plot(EnergyToPlot, model_abs, ls=ls, lw=lw, c=self.color, label=label)
 
         # Integrating spectrum
         # spec = [m.value / e.value / u.keV.to(u.erg) for (m, e) in zip(model, EnergyToPlot)]

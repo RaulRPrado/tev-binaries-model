@@ -84,7 +84,7 @@ def do_fit(
         Tau = list()
         DistTau = list()
         for iper in periods:
-            en, fl, fl_er = data.get_data(iper)
+            en, fl, fl_er = data.get_data(iper, GT=True)
             data_en.append(en)
             data_fl.append(fl)
             data_fl_er.append(fl_er)
@@ -172,7 +172,7 @@ def do_fit(
         for ii in range(pars.MAX_PERIOD):
             idx = periods.index(ii) if (ii in periods) else 0
 
-            en, fl, fl_er = data.get_data(ii)
+            en, fl, fl_er = data.get_data(ii, GT=True)
             data_en.append(en)
             data_fl.append(fl)
             data_fl_er.append(fl_er)
