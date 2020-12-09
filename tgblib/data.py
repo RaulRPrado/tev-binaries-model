@@ -53,7 +53,7 @@ def get_data(period, onlyNuSTAR=False, onlyVTS=False, GT=False):
         logging.error('Both onlyNuSTAR and onlyVTS - pick one')
         return None, None, None
 
-    labelGT = '_GT' if GT else ''
+    labelGT = '_GT' if (GT and period in [0, 1]) else ''
     data = ascii.read('data/HESS_J0632_' + str(period) + labelGT + '.csv', format='basic')
 
     if onlyNuSTAR:
