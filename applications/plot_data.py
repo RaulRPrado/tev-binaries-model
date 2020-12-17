@@ -35,6 +35,9 @@ if __name__ == '__main__':
         4: 'Ve2c'
     }
 
+    MINOR_TICK = 7.5
+    MAJOR_TICK = 12
+    
     for iper in range(NO_OF_PERIODS):
         logging.info('Plotting data - Period {}'.format(iper))
 
@@ -61,8 +64,8 @@ if __name__ == '__main__':
             ax.set_xscale('log')
             ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
             ax.set_xlabel(r'$E\;[\mathrm{keV}]$')
-            ax.tick_params(which='minor', length=5)
-            ax.tick_params(which='major', length=9)
+            ax.tick_params(which='minor', length=MINOR_TICK)
+            ax.tick_params(which='major', length=MAJOR_TICK)
 
             sf = SpectrumFit(energy=nuStarEnergy, spec=nuStarFlux, specErr=nuStarFluxErr)
 
@@ -132,6 +135,8 @@ if __name__ == '__main__':
             ax.set_xscale('log')
             ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
             ax.set_xlabel(r'$E\;[\mathrm{keV}]$')
+            ax.tick_params(which='minor', length=MINOR_TICK)
+            ax.tick_params(which='major', length=MAJOR_TICK)
 
             if len(vtsEnergy) > 0:
                 sf = SpectrumFit(energy=vtsEnergy, spec=vtsFlux, specErr=vtsFluxErr)

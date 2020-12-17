@@ -131,6 +131,7 @@ class SetOfOrbits:
         noAxes=False,
         color=None,
         lw=None,
+        ls='-',
         set_aspect=True
     ):
         ax = plt.gca()
@@ -163,7 +164,7 @@ class SetOfOrbits:
             plt.plot(
                 self.orbit_ref.posX,
                 self.orbit_ref.posY,
-                linestyle='-',
+                linestyle=ls,
                 linewidth=lw,
                 marker='None',
                 c=cc

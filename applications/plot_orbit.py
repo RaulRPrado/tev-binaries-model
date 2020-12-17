@@ -239,6 +239,7 @@ if __name__ == '__main__':
         noPoint=True,
         noAxes=True,
         lw=2,
+        ls='-',
         set_aspect=False,
         only_ref=True
     )
@@ -246,6 +247,7 @@ if __name__ == '__main__':
         noPoint=True,
         noAxes=True,
         lw=2,
+        ls='--',
         set_aspect=False,
         only_ref=True
     )
@@ -253,6 +255,7 @@ if __name__ == '__main__':
         noPoint=True,
         noAxes=True,
         lw=2,
+        ls='-.',
         set_aspect=False,
         only_ref=True
     )
