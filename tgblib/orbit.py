@@ -5,6 +5,7 @@ import numpy as np
 import math
 import itertools
 import logging
+import copy
 from numpy import arccos
 from numpy.linalg import norm
 
@@ -29,8 +30,7 @@ class SystemParameters:
             'temp_star',
             'rad_star',
             'phase_per',
-            'x1',
-            'f_m'
+            'x1'
         ]
         for p in required_par:
             if p not in kwargs.keys():
@@ -48,7 +48,8 @@ class SetOfOrbits:
         color='b',
         systems=None,
         mjd_pts=None,
-        mjd_ph_0=None
+        mjd_ph_0=None,
+        phases=None
     ):
         self.sys = systems if isinstance(systems, list) else [systems]
         self.mjd_ph_0 = mjd_ph_0
@@ -59,11 +60,18 @@ class SetOfOrbits:
             o = Orbit(s, phase_step=phase_step)
             if mjd_pts is not None:
                 o.set_points(mjd_pts=mjd_pts)
+            elif phases is not None:
+                o.set_points(phase=phases)
             self.orbits.append(o)
             if s.is_ref:
                 self.orbit_ref = o
 
+        # if mjd_pts is not None:
         self.compute_mjd_phase()
+        # elif phases is not None:
+        #     self.mjd_phase = copy.copy(phases)
+        # else:
+        #     pass
 
         self.phase_band, self.distance_band_hi, self.distance_band_lo = list(), list(), list()
         self.theta_band_hi, self.theta_band_lo = list(), list()
@@ -123,6 +131,7 @@ class SetOfOrbits:
         noAxes=False,
         color=None,
         lw=None,
+        ls='-',
         set_aspect=True
     ):
         ax = plt.gca()
@@ -155,7 +164,7 @@ class SetOfOrbits:
             plt.plot(
                 self.orbit_ref.posX,
                 self.orbit_ref.posY,
-                linestyle='-',
+                linestyle=ls,
                 linewidth=lw,
                 marker='None',
                 c=cc
@@ -562,7 +571,10 @@ class Orbit:
                 ph -= int(ph)
                 self.phase_pts = np.append(self.phase_pts, ph)
         elif phase is not None:
-            self.phase_pts = [phase] if not isinstance(phase, list) else phase
+            try:
+                self.phase_pts = list(phase)
+            except:
+                self.phase_pts = [phase]
             self.n_pts = len(self.phase_pts)
         else:
             return
@@ -589,8 +601,8 @@ def generate_systems(
     rad_star,
     mass_star,
     mass_compact,
-    f_m,
-    x1
+    x1,
+    f_m=[None]
 ):
     systems = list()
     comb = itertools.product(*[
@@ -662,6 +674,73 @@ def getMoritaniSystem():
         mass_compact=[1.4],
         f_m=[0.0024],
         x1=[0.120]
+    )
+
+
+def getAnSystem():
+    return generate_systems(
+        eccentricity=[0.45],
+        phase_per=[0.3],
+        inclination=[47 * util.degToRad],
+        omega=[271 * util.degToRad],
+        period=[pars.TPER],
+        mjd_0=[pars.MJD_0],
+        temp_star=[pars.TSTAR],
+        rad_star=[pars.RSTAR],
+        mass_star=[16],
+        mass_compact=[1.4],
+        x1=[0.190663]
+    )
+
+
+def getLS5039SystemSarty11():
+    return generate_systems(
+        eccentricity=[0.24],
+        phase_per=[0],
+        inclination=[60 * util.degToRad],
+        omega=[237.3 * util.degToRad],
+        period=[pars.TPER_LS],
+        mjd_0=[5017.08],
+        temp_star=[pars.TSTAR_LS],
+        rad_star=[pars.RSTAR_LS],
+        mass_star=[pars.MSTAR_LS],
+        mass_compact=[1.8],
+        f_m=[0.0049],
+        x1=[0.008231]
+    )
+
+
+def getLS5039SystemCasares05():
+    return generate_systems(
+        eccentricity=[0.35],
+        phase_per=[0],
+        inclination=[24.9 * util.degToRad],
+        omega=[225.8 * util.degToRad],
+        period=[pars.TPER_LS],
+        mjd_0=[1943.09],
+        temp_star=[pars.TSTAR_LS],
+        rad_star=[pars.RSTAR_LS],
+        mass_star=[pars.MSTAR_LS],
+        mass_compact=[1.4],
+        f_m=[0.0053],
+        x1=[0.008464]
+    )
+
+
+def getLS5039SystemAragona09():
+    return generate_systems(
+        eccentricity=[0.34],
+        phase_per=[0],
+        inclination=[37 * util.degToRad],
+        omega=[236.0 * util.degToRad],
+        period=[pars.TPER_LS],
+        mjd_0=[2825.99],
+        temp_star=[pars.TSTAR_LS],
+        rad_star=[pars.RSTAR_LS],
+        mass_star=[pars.MSTAR_LS],
+        mass_compact=[1.4],
+        f_m=[0.0026],
+        x1=[0.0066967]
     )
 
 

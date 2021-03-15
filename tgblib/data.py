@@ -10,7 +10,34 @@ from astropy.io import ascii
 from tgblib import util
 
 
-def get_data(period, onlyNuSTAR=False, onlyVTS=False):
+def get_data_ls5039(which=None):
+    '''
+    Get light curve data.
+
+    Returns
+    -------
+    phase, flux, flux_err, gamma, gamma_err
+    '''
+
+    if which.lower() == "hess":
+        data = ascii.read('data/LS5039_HESS.csv', format='basic')
+    elif which.lower() == "suzaku":
+        data = ascii.read('data/LS5039_SUZAKU.csv', format='basic')
+    else:
+        logging.error('Invalid requested data')
+        return None
+
+    phase = list()
+    for p0, p1 in zip(data['phase0'], data['phase1']):
+        phase.append((p0 + p1) / 2.)
+
+    if which.lower() == "hess":
+        return phase, data['n'], data['n_err'], data['gamma'], data['gamma_err']
+    else:
+        return phase, data['flux'], data['flux_err'], data['gamma'], data['gamma_err']
+
+
+def get_data(period, onlyNuSTAR=False, onlyVTS=False, GT=False):
     '''
     Get data for a given period.
     Energies in keV and fluxes in erg/cm2/s
@@ -26,7 +53,8 @@ def get_data(period, onlyNuSTAR=False, onlyVTS=False):
         logging.error('Both onlyNuSTAR and onlyVTS - pick one')
         return None, None, None
 
-    data = ascii.read('data/HESS_J0632_' + str(period) + '.csv', format='basic')
+    labelGT = '_GT' if (GT and period in [0, 1]) else ''
+    data = ascii.read('data/HESS_J0632_' + str(period) + labelGT + '.csv', format='basic')
 
     if onlyNuSTAR:
         logging.debug('Processing onlyNuSTAR data')
@@ -52,7 +80,7 @@ def get_data(period, onlyNuSTAR=False, onlyVTS=False):
     return energy_out, flux_out, flux_err_out
 
 
-def get_data_ul(period):
+def get_data_ul(period, GT=False):
     '''
     Get ul data for a given period.
     Energies in keV and fluxes in erg/cm2/s
@@ -65,7 +93,8 @@ def get_data_ul(period):
         logging.error('Invalid period')
         return None, None, None
 
-    data = ascii.read('data/HESS_J0632_' + str(period) + '.csv', format='basic')
+    labelGT = '_GT' if GT else ''
+    data = ascii.read('data/HESS_J0632_' + str(period) + labelGT + '.csv', format='basic')
 
     logging.debug('Processing UL data')
     energy = [en for (er, en) in zip(data['flux_err'], data['energy']) if er == 0]

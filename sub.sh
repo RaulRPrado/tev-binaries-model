@@ -2,9 +2,9 @@
 
 for size in '' '_small'
 do
-    for orb in 'ca' 'mo'
+    for orb in 'mo' 'ca' 'an'
     do
-        label="${orb}${size}"
+        label="${orb}${size}_dref"
         echo "Submitting label $label"
         qsub -cwd -l s_cpu=48:00:00 -js 10 -N $label fit_psr.sh $label
 

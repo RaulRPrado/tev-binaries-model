@@ -17,15 +17,38 @@ logging.getLogger().setLevel(logging.INFO)
 if __name__ == '__main__':
 
     util.set_my_fonts(mode='talk')
-    show = True
+    show = False
     label = 'std'
 
+    NU_TITLE = {
+        0: 'Nu1a',
+        1: 'Nu1b',
+        2: 'Nu2a',
+        3: 'none',
+        4: 'Nu2b'
+    }
+    VTS_TITLE = {
+        0: 'Ve1a',
+        1: 'Ve1b',
+        2: 'Ve2a',
+        3: 'Ve2b',
+        4: 'Ve2c'
+    }
+
+    MINOR_TICK = 7.5
+    MAJOR_TICK = 12
+    
     for iper in range(NO_OF_PERIODS):
         logging.info('Plotting data - Period {}'.format(iper))
 
         nuStarEnergy, nuStarFlux, nuStarFluxErr = get_data(iper, onlyNuSTAR=True)
         vtsEnergy, vtsFlux, vtsFluxErr = get_data(iper, onlyVTS=True)
         vtsEnergyUL, vtsFluxUL = get_data_ul(iper)
+
+        vtsEnergy_GT, vtsEnergyUL_GT = list(), list()
+        if iper < 2:
+            vtsEnergy_GT, vtsFlux_GT, vtsFluxErr_GT = get_data(iper, onlyVTS=True, GT=True)
+            vtsEnergyUL_GT, vtsFluxUL_GT = get_data_ul(iper, GT=True)
 
         ##########
         # NuSTAR
@@ -36,13 +59,13 @@ if __name__ == '__main__':
 
             plt.figure(figsize=(8, 6), tight_layout=True)
             ax = plt.gca()
-            ax.set_title(MONTH_LABEL[iper])
+            ax.set_title(NU_TITLE[iper])
             ax.set_yscale('log')
             ax.set_xscale('log')
             ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
             ax.set_xlabel(r'$E\;[\mathrm{keV}]$')
-            ax.tick_params(which='minor', length=5)
-            ax.tick_params(which='major', length=9)
+            ax.tick_params(which='minor', length=MINOR_TICK)
+            ax.tick_params(which='major', length=MAJOR_TICK)
 
             sf = SpectrumFit(energy=nuStarEnergy, spec=nuStarFlux, specErr=nuStarFluxErr)
 
@@ -74,18 +97,18 @@ if __name__ == '__main__':
                 + '{:.2f}'.format(sf.gammaErr)
             )
 
-            ax.text(
-                0.07,
-                0.90,
-                flux_text,
-                transform=ax.transAxes
-            )
-            ax.text(
-                0.07,
-                0.82,
-                slope_text,
-                transform=ax.transAxes
-            )
+            # ax.text(
+            #     0.07,
+            #     0.90,
+            #     flux_text,
+            #     transform=ax.transAxes
+            # )
+            # ax.text(
+            #     0.07,
+            #     0.82,
+            #     slope_text,
+            #     transform=ax.transAxes
+            # )
 
             plt.savefig(
                 'figures/DataNuStar_' + str(iper) + '_' + label + '.png',
@@ -107,21 +130,24 @@ if __name__ == '__main__':
 
             plt.figure(figsize=(8, 6), tight_layout=True)
             ax = plt.gca()
-            ax.set_title(MONTH_LABEL[iper])
+            ax.set_title(VTS_TITLE[iper])
             ax.set_yscale('log')
             ax.set_xscale('log')
             ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
             ax.set_xlabel(r'$E\;[\mathrm{keV}]$')
+            ax.tick_params(which='minor', length=MINOR_TICK)
+            ax.tick_params(which='major', length=MAJOR_TICK)
 
             if len(vtsEnergy) > 0:
                 sf = SpectrumFit(energy=vtsEnergy, spec=vtsFlux, specErr=vtsFluxErr)
 
                 # sf.fit_power_law(Emin=util.get_emin_fit(vtsEnergy), Emax=util.get_emax_fit(vtsEnergy))
                 sf.plot_data(color='k', marker='o', linestyle='None')
+
                 if len(vtsEnergy) > 1:
-                    sf.fit_power_law(Emin=0.2e9, Emax=3e9)
+                    sf.fit_power_law(Emin=0.2e9, Emax=5e9)
                     sf.plot_fit(color='k', linestyle='-', linewidth=1.5)
-                    sf.plot_fit_unc(nocor=True, color='k', linestyle='None', alpha=0.2)
+                    sf.plot_fit_unc(nocor=True, color='k', linestyle='None', alpha=0.1)
 
                     flux_box = sf.flux / 1e-12
                     flux_err_box = sf.fluxErr / 1e-12
@@ -135,18 +161,18 @@ if __name__ == '__main__':
                         + '{:.2f}'.format(sf.gammaErr)
                     )
 
-                    ax.text(
-                        0.07,
-                        0.12,
-                        flux_text,
-                        transform=ax.transAxes
-                    )
-                    ax.text(
-                        0.07,
-                        0.05,
-                        slope_text,
-                        transform=ax.transAxes
-                    )
+                    # ax.text(
+                    #     0.07,
+                    #     0.12,
+                    #     flux_text,
+                    #     transform=ax.transAxes
+                    # )
+                    # ax.text(
+                    #     0.07,
+                    #     0.05,
+                    #     slope_text,
+                    #     transform=ax.transAxes
+                    # )
 
                     # Normalization - Gernot's question Jan2020
                     N = sf.get_norm(e=1e9)  # in erg cm-2 s-1
@@ -172,7 +198,29 @@ if __name__ == '__main__':
                     linestyle='none'
                 )
 
-            ax.set_ylim(1.7e-14, 9e-12)
+            # GT
+            if len(vtsEnergy_GT) > 0:
+                sf = SpectrumFit(energy=vtsEnergy_GT, spec=vtsFlux_GT, specErr=vtsFluxErr_GT)
+                sf.plot_data(color='r', marker='s', linestyle='None')
+
+                if len(vtsEnergy_GT) > 1:
+                    sf.fit_power_law(Emin=0.2e9, Emax=5e9)
+                    sf.plot_fit(color='r', linestyle='--', linewidth=1.5)
+                    sf.plot_fit_unc(nocor=True, color='r', linestyle='None', alpha=0.1)
+
+            # UPPER LIMITS
+            if len(vtsEnergyUL_GT) > 0:
+                vtsFluxErrUL = [p - pow(10, math.log10(p)-0.1) for p in vtsFluxUL]
+                ax.errorbar(
+                    vtsEnergyUL_GT,
+                    vtsFluxUL_GT,
+                    yerr=vtsFluxErrUL,
+                    uplims=True,
+                    color='r',
+                    linestyle='none'
+                )
+
+            ax.set_ylim(1.7e-14, 1e-11)
             ax.set_xlim(1e8, 1e10)
 
             myTicks = [1e8, 1e9, 1e10]

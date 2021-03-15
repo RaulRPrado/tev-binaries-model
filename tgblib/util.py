@@ -84,3 +84,18 @@ def fix_naima_bug(energy, model, bin_size=0.1):
         new_model.append(np.mean(collected_model))
 
     return new_energy, new_model
+
+
+def smooth_break(energy, model):
+    new_model = list()
+    for ii, en, mo in zip(range(len(energy)), energy, model):
+        if en < 1.5e7 or en > 6e8:
+            new_model.append(mo)
+            continue
+
+        nn = 3
+        mm = sum(model[ii - nn:ii + nn]) / (2 * nn)
+
+        new_model.append(mm)
+
+    return new_model

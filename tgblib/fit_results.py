@@ -559,11 +559,10 @@ class FitResult(object):
         dist=2,
         pos=np.array([1, 1, 1]),
         ls='-',
+        lw=1,
         label='None',
         Tstar=pars.TSTAR,
         Rstar=pars.RSTAR,
-        Mdot=3.16e-9,
-        Vw=1500,
         emin=0.1,
         ecut=50,
         fast=False
@@ -639,9 +638,10 @@ class FitResult(object):
         model_abs = [math.exp(-t) * m.value for (m, t) in zip(model, tau)]
 
         EnergyToPlot, model_abs = util.fix_naima_bug(EnergyToPlot, model_abs)
+        model_abs = util.smooth_break(EnergyToPlot, model_abs)
 
         ax = plt.gca()
-        ax.plot(EnergyToPlot, model_abs, ls=ls, c=self.color, label=label)
+        ax.plot(EnergyToPlot, model_abs, ls=ls, lw=lw, c=self.color, label=label)
 
         # Integrating spectrum
         # spec = [m.value / e.value / u.keV.to(u.erg) for (m, e) in zip(model, EnergyToPlot)]

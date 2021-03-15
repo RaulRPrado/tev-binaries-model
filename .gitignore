@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-figures/*
+figures/*pdf
+figures/*png
+figures/LS5039/*pdf
+figures/LS5039/*png
 fit_results/*.txt
 absorption_table*dat
