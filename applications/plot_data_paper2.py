@@ -4,12 +4,8 @@ import matplotlib.pyplot as plt
 import logging
 import math
 
-import astropy.units as u
-
 from tgblib import util
 from tgblib.data import get_data, get_data_ul
-from tgblib.parameters import MJD_MEAN, NO_OF_PERIODS, MONTH_LABEL
-from tgblib.spectrum_fit import SpectrumFit
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -77,7 +73,7 @@ if __name__ == '__main__':
             marker=MARKERS[iper]
         )
         if len(vtsEnergyUL) > 0:
-            vtsFluxErrUL = [p - pow(10, math.log10(p)-0.1) for p in vtsFluxUL]
+            vtsFluxErrUL = [p - pow(10, math.log10(p) - 0.1) for p in vtsFluxUL]
             ax.errorbar(
                 vtsEnergyUL,
                 vtsFluxUL,
@@ -87,7 +83,6 @@ if __name__ == '__main__':
                 linestyle='none',
                 marker=MARKERS[iper]
             )
-        
 
     ax.set_ylim(0.8e-13, 5e-12)
     ax.set_xlim(3e8, 2e10)
@@ -133,7 +128,7 @@ if __name__ == '__main__':
             marker=MARKERS[iper]
         )
         if len(vtsEnergyUL) > 0:
-            vtsFluxErrUL = [p - pow(10, math.log10(p)-0.1) for p in vtsFluxUL]
+            vtsFluxErrUL = [p - pow(10, math.log10(p) - 0.1) for p in vtsFluxUL]
             ax.errorbar(
                 vtsEnergyUL,
                 vtsFluxUL,
@@ -143,7 +138,6 @@ if __name__ == '__main__':
                 linestyle='none',
                 marker=MARKERS[iper]
             )
-        
 
     ax.set_ylim(0.8e-13, 5e-12)
     ax.set_xlim(3e8, 2e10)
