@@ -52,13 +52,15 @@ if __name__ == '__main__':
     MINOR_TICK = 7.5
     MAJOR_TICK = 12
 
+    keV_to_TeV = u.keV.to(u.TeV)
+
     # 2017
     plt.figure(figsize=(8, 6), tight_layout=True)
     ax = plt.gca()
     ax.set_yscale('log')
     ax.set_xscale('log')
     ax.set_ylabel(r'$E^2\;\mathrm{d}N/\mathrm{d}E\;[\mathrm{erg\;s^{-1}\;cm^{-2}}]$')
-    ax.set_xlabel(r'$E\;[\mathrm{keV}]$')
+    ax.set_xlabel(r'$E\;[\mathrm{TeV}]$')
     ax.tick_params(which='minor', length=MINOR_TICK)
     ax.tick_params(which='major', length=MAJOR_TICK)
 
@@ -66,7 +68,7 @@ if __name__ == '__main__':
         vtsEnergy, vtsFlux, vtsFluxErr = get_data(iper, onlyVTS=True, GT=True)
         vtsEnergyUL, vtsFluxUL = get_data_ul(iper, GT=True)
         ax.errorbar(
-            [e * (1 + 0.02 * nn) for e in vtsEnergy],
+            [e * (1 + 0.02 * nn) * keV_to_TeV for e in vtsEnergy],
             vtsFlux,
             yerr=vtsFluxErr,
             color=COLORS[iper],
@@ -77,7 +79,7 @@ if __name__ == '__main__':
         if len(vtsEnergyUL) > 0:
             vtsFluxErrUL = [p - pow(10, math.log10(p) - 0.1) for p in vtsFluxUL]
             ax.errorbar(
-                vtsEnergyUL,
+                [e * keV_to_TeV for e in vtsEnergyUL],
                 vtsFluxUL,
                 yerr=vtsFluxErrUL,
                 uplims=True,
@@ -87,10 +89,10 @@ if __name__ == '__main__':
             )
 
     ax.set_ylim(0.8e-13, 5e-12)
-    ax.set_xlim(3e8, 2e10)
+    ax.set_xlim(3e-1, 2e1)
 
-    myTicks = [1e9, 1e10]
-    myLabels = [r'$10^{9}$', r'$10^{10}$']
+    myTicks = [1e0, 1e1]
+    myLabels = [r'$10^{0}$', r'$10^{1}$']
     ax.set_xticks(myTicks)
     ax.set_xticklabels(myLabels)
 
@@ -116,8 +118,6 @@ if __name__ == '__main__':
     ax.set_xlabel(r'$E\;[\mathrm{TeV}]$')
     ax.tick_params(which='minor', length=MINOR_TICK)
     ax.tick_params(which='major', length=MAJOR_TICK)
-
-    keV_to_TeV = u.keV.to(u.TeV)
 
     for nn, iper in enumerate([2, 3, 4]):
         vtsEnergy, vtsFlux, vtsFluxErr = get_data(iper, onlyVTS=True)
